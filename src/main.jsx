@@ -331,6 +331,7 @@ function GalaxyDimension({ projects, origin, closing, onClose, onAddDeadProject 
     code: [`// ${project.title}`, `const tools = [${project.tools.join(', ')}]`, '/* unfinished signal */', project.note || '// TODO: continue', 'return unresolved;'],
   })), [projects])
   const sendProjects = () => frame.current?.contentWindow?.postMessage({ type: 'lab-projects', projects: galaxyProjects }, '*')
+  useEffect(() => { sendProjects() }, [galaxyProjects])
   useEffect(() => {
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
