@@ -144,8 +144,9 @@ function DeepOcean(container, opts) {
   addEventListener('resize', resize); resize();
 
   const sv = [], sp = [], bufCV = new Float32Array(32), bufP = new Float32Array(8), bufS = new Float32Array(8);
-  const t0 = performance.now() / 1000; let raf, nextPulse = 0;
-  (function loop() {
+  const t0 = performance.now() / 1000; let raf, nextPulse = 0, active = !document.hidden;
+  function loop() {
+    if (!active) return;
     raf = requestAnimationFrame(loop);
     const t = (performance.now() / 1000 - t0) * (reduce ? 0.3 : 1);
     let cs = creature(); if (!Array.isArray(cs)) cs = [cs];
@@ -161,10 +162,14 @@ function DeepOcean(container, opts) {
     gl.uniform2f(uM, m.x, m.y); gl.uniform1f(uMS, m.s);
     gl.uniform4fv(uCV, bufCV); gl.uniform1fv(uPs, bufP); gl.uniform1fv(uSz, bufS);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
-  })();
+  }
+  function onVisibility(){ active = !document.hidden; if (active && !raf) loop(); if (!active) { cancelAnimationFrame(raf); raf = 0; } }
+  document.addEventListener('visibilitychange', onVisibility);
+  loop();
 
   return function dispose() {
     cancelAnimationFrame(raf);
+    document.removeEventListener('visibilitychange', onVisibility);
     removeEventListener('pointermove', onMove); document.removeEventListener('mouseleave', onLeave);
     removeEventListener('resize', resize);
     if (cv.parentNode) cv.parentNode.removeChild(cv);
@@ -186,17 +191,19 @@ function SymbioteBump(a, b, t) {
 }
 
 function SymbiotePupil(container, opts) {
+  const shared = opts && opts.__shared;
   const O = Object.assign({ tone: 1, scale: 0.85, tendrils: 44, arc: 6.2832, arcStart: 0, lenMul: 1, thick: 1, core: [1, 1, 1], bump: 0.14, freq: 1.4,
     eye: 1, seg: 128, speed: 1, stare: 0.8, id: 0, swarm: null }, opts || {});
   const W = () => container.clientWidth, H = () => container.clientHeight;
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+  const renderer = shared ? shared.renderer : new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  if (!shared) renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
   renderer.setSize(W(), H());
-  container.appendChild(renderer.domElement);
+  if (!shared) container.appendChild(renderer.domElement);
 
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(40, W() / H(), 0.1, 100);
-  camera.position.set(0, 0, 7.5);
+  const camera = shared ? shared.camera : new THREE.PerspectiveCamera(40, W() / H(), 0.1, 100);
+  if (!shared) camera.position.set(0, 0, 7.5);
+  if (shared) shared.scenes.push(scene);
 
   const uTime = { value: 0 };
 
@@ -535,13 +542,15 @@ function SymbiotePupil(container, opts) {
     camera.position.z = camera.aspect < 1 ? 7.5 / Math.max(camera.aspect, 0.55) : 7.5;
     camera.updateProjectionMatrix();
   }
-  window.addEventListener('resize', onResize); onResize();
+  if (!shared) window.addEventListener('resize', onResize);
+  onResize();
 
   /* ---- loop ---- */
-  const clock = new THREE.Clock(); let raf;
+  const clock = shared ? shared.clock : new THREE.Clock(); let raf;
   /* ---- swimming brain: wander, sometimes stop to stare at the cursor and drift close, then swim off. wraps edge to edge ---- */
   const SW = { id: O.id, cool: {}, bt: -99, kick: 0, boost: 0, other: null, launch: 0, say: '!', r: O.scale * Math.max(O.core[0], O.core[1]) * 1.05, x: (Math.random() - 0.5) * 7, y: (Math.random() - 0.5) * 3, vx: 1, vy: 0.2, head: Math.random() * 6.28, mode: 'swim', until: 5 + Math.random() * 4, look: 0.65 };
   const trailW = new THREE.Vector3(), baseW = new THREE.Vector3(), tmp2 = new THREE.Vector3(), lookW = new THREE.Vector3();
+  const screenPos = { x: 0, y: 0, vx: 0, vy: 0, sz: 0, pulse: 0 };
   let lastT = 0;
   if (O.swarm) O.swarm.push(SW);
   /* speech bubble that pops up when we bump into a friend */
@@ -556,8 +565,7 @@ function SymbiotePupil(container, opts) {
     g.fillStyle = '#EAF0FF'; g.font = 'bold 54px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(txt, 64, 62);
     bubT.needsUpdate = true;
   }
-  (function loop() {
-    raf = requestAnimationFrame(loop);
+  function tick() {
     const t = clock.getElapsedTime(); uTime.value = t;
     const dt = Math.min(0.05, t - lastT); lastT = t;
     const hh = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.position.z, hw = hh * camera.aspect;
@@ -599,8 +607,8 @@ function SymbiotePupil(container, opts) {
     const spd = Math.hypot(SW.vx, SW.vy), ux = spd > 0.01 ? SW.vx / spd : 0, uy = spd > 0.01 ? SW.vy / spd : 0, mag = Math.min(spd * 1.1, 1.6);
     baseW.set(SW.x, SW.y, 0); trailW.set(SW.x - ux * mag, SW.y - uy * mag, 0);
     if (SW.mode === 'swim') lookW.set(SW.x + Math.cos(SW.head) * 4, SW.y + Math.sin(SW.head) * 4, 1.5); else if (SW.mode === 'bump' && SW.other) lookW.set(SW.other.x, SW.other.y, 1.5); else lookW.set(curX, curY, 1.5);
-    container.__pos = { x: SW.x / (2 * hw) + 0.5, y: 0.5 - SW.y / (2 * hh), vx: SW.vx / (2 * hw), vy: SW.vy / (2 * hh), sz: O.scale / 0.85,
-      pulse: SW.mode === 'swim' ? Math.max(0, Math.sin(t * 2.2 - 0.6)) : 0 };
+    screenPos.x = SW.x / (2 * hw) + 0.5; screenPos.y = 0.5 - SW.y / (2 * hh); screenPos.vx = SW.vx / (2 * hw); screenPos.vy = SW.vy / (2 * hh); screenPos.sz = O.scale / 0.85;
+    screenPos.pulse = SW.mode === 'swim' ? Math.max(0, Math.sin(t * 2.2 - 0.6)) : 0; container.__pos = screenPos;
     /* bump comedy: squash-and-stretch wobble, tendrils flail, popping speech bubble */
     const bs = t - SW.bt, sq = bs < 2.5 ? Math.exp(-bs * 4) * Math.cos(bs * 22) : 0, kick = SW.kick; SW.kick = 0;
     group.scale.set(O.scale * (1 + 0.012 * sq), O.scale * (1 - 0.012 * sq), O.scale);
@@ -648,15 +656,25 @@ function SymbiotePupil(container, opts) {
     pupilM.position.set(eyeLook.x * EYE_R * 0.36, eyeLook.y * EYE_R * 0.36, 0.004);
     pupilM.scale.setScalar(1 + Math.sin(t * 1.6) * 0.05 - Math.min(Math.hypot(eyeLook.x, eyeLook.y), 1) * 0.08 + (SW.mode === 'bump' ? 0.12 * Math.min(1, (t - SW.bt) * 3) : 0));
     eye.scale.set(O.eye, O.eye * blink, 1);
-    renderer.render(scene, camera);
-  })();
+  }
+  if (shared) shared.updates.push(tick);
+  else (function loop() { raf = requestAnimationFrame(loop); tick(); renderer.render(scene, camera); })();
 
   return function dispose() {
     cancelAnimationFrame(raf);
+    if (shared) {
+      const updateIndex = shared.updates.indexOf(tick);
+      if (updateIndex >= 0) shared.updates.splice(updateIndex, 1);
+      const sceneIndex = shared.scenes.indexOf(scene);
+      if (sceneIndex >= 0) shared.scenes.splice(sceneIndex, 1);
+    }
     window.removeEventListener('pointermove', onMove);
     document.removeEventListener('mouseleave', onLeave);
-    window.removeEventListener('resize', onResize);
-    renderer.dispose(); container.removeChild(renderer.domElement);
+    if (!shared) {
+      window.removeEventListener('resize', onResize);
+      renderer.dispose();
+      if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement);
+    }
   };
 }
 
@@ -674,12 +692,37 @@ const SYMBIOTE_SPECS = [
 ];
 function SymbiotePack(containers) {
   const swarm = [];
-  const d = containers.map((c, i) => SymbiotePupil(c, Object.assign({ swarm, stare: 0.3 }, SYMBIOTE_SPECS[i])));
-  return function dispose() { d.forEach(f => f()); };
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+  renderer.autoClear = false;
+  const camera = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.1, 100);
+  camera.position.set(0, 0, 7.5);
+  const shared = { renderer, camera, clock: new THREE.Clock(), updates: [], scenes: [] };
+  containers[0].appendChild(renderer.domElement);
+  const d = containers.map((c, i) => SymbiotePupil(c, Object.assign({ swarm, stare: 0.3, __shared: shared }, SYMBIOTE_SPECS[i])));
+  function resize() {
+    const w = containers[0].clientWidth, h = containers[0].clientHeight;
+    renderer.setSize(w, h); camera.aspect = w / h; camera.position.z = camera.aspect < 1 ? 7.5 / Math.max(camera.aspect, 0.55) : 7.5; camera.updateProjectionMatrix();
+  }
+  addEventListener('resize', resize); resize();
+  let raf, active = !document.hidden;
+  function loop() {
+    if (!active) return;
+    raf = requestAnimationFrame(loop);
+    for (const update of shared.updates) update();
+    renderer.clear();
+    for (const scene of shared.scenes) { renderer.clearDepth(); renderer.render(scene, camera); }
+  }
+  function onVisibility(){ active = !document.hidden; if (active && !raf) loop(); if (!active) { cancelAnimationFrame(raf); raf = 0; } }
+  document.addEventListener('visibilitychange', onVisibility);
+  loop();
+  return function dispose() { active = false; cancelAnimationFrame(raf); document.removeEventListener('visibilitychange', onVisibility); removeEventListener('resize', resize); d.forEach(f => f()); renderer.dispose(); if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement); };
 }
 
 const pes=[0,1,2,3,4,5,6,7].map(i=>document.getElementById('p'+i));
-DeepOcean(document.getElementById('ocean'),{creature:()=>pes.map(e=>e.__pos).filter(Boolean)});
+const creaturePositions=[];
+function getCreaturePositions(){ let n=0; for(const pupil of pes){ if(pupil.__pos) creaturePositions[n++]=pupil.__pos; } creaturePositions.length=n; return creaturePositions; }
+DeepOcean(document.getElementById('ocean'),{creature:getCreaturePositions});
 SymbiotePack(pes);
 window.addEventListener('message',e=>{
   if(e.data?.type!=='deep-ocean-pointer') return;

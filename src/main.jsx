@@ -58,6 +58,7 @@ function SwimmingSymbiote({ pointer, swimmer }) {
     scale: [1, 1, 1],
   })), [])
   const motion = useRef({ state: 'SWIM', next: 7, since: 0, watch: 4, lastPointer: 0, velocity: new THREE.Vector3(0.26, 0.04, 0), position: new THREE.Vector3(-1.35, -0.55, -0.25) })
+  const desired = useRef(new THREE.Vector3()).current
   useFrame((frame, delta) => {
     if (!group.current) return
     const time = frame.clock.elapsedTime
@@ -71,7 +72,7 @@ function SwimmingSymbiote({ pointer, swimmer }) {
     if (current.state === 'WATCH' && ((!recent) || time - current.since > current.watch)) { current.state = 'LOSE_INTEREST'; current.since = time }
     if (current.state === 'LOSE_INTEREST' && time - current.since > 1) { current.state = 'SWIM'; current.next = time + 6 + Math.random() * 9 }
 
-    const desired = new THREE.Vector3(Math.sin(time * 0.15 + 1.2), Math.sin(time * 0.23) * 0.5, Math.sin(time * 0.11) * 0.18)
+    desired.set(Math.sin(time * 0.15 + 1.2), Math.sin(time * 0.23) * 0.5, Math.sin(time * 0.11) * 0.18)
     if (current.state === 'NOTICE' || current.state === 'WATCH') {
       desired.set(pointer.current.x * 0.42, -pointer.current.y * 0.3, -0.55).sub(current.position).normalize()
       desired.multiplyScalar(current.state === 'NOTICE' ? 0.04 : 0.07)
