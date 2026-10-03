@@ -1,0 +1,5 @@
+export const projects = [
+  { id: '001', title: 'Untitled Spatial Study', type: '3D / IN PROGRESS', note: 'A room that keeps changing its mind.', tone: 'iris', status: 'in-progress', tools: ['SketchUp', 'Blender', 'Spatial studies'], description: 'An early spatial experiment about rooms that behave more like thoughts than buildings.', media: ['RENDER / 01', 'PLAN / 02', 'DETAIL / 03'] },
+  { id: '002', title: 'Mod Archive', type: 'CODE / EXPERIMENT', note: 'Small interventions inside familiar games.', tone: 'slate', status: 'in-progress', tools: ['JavaScript', 'Game modding', 'Reverse engineering'], description: 'A growing collection of modifications, tests, and ideas for changing how games feel from inside.', media: ['CAPTURE / 01', 'SYSTEM / 02', 'PLAYTEST / 03'] },
+  { id: '003', title: 'Signal / Noise', type: 'VISUAL SYSTEM', note: 'A study of interfaces that feel observed.', tone: 'chrome', status: 'failed-experiment', tools: ['React', 'Motion', 'Interface studies'], description: 'A broken prototype for a visual language built from scanning, interruptions, and quiet pressure.', media: ['FRAME / 01', 'GLITCH / 02', 'LOG / 03'] },
+]
