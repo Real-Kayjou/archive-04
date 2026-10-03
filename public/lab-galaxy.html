@@ -113,10 +113,10 @@ function ui(){chips.innerHTML='';
  panel.innerHTML='<b>'+p.name+' <small>· '+p.lang+' · '+p.years+'</small></b>✖ build failed · '+p.pct+'% complete<br>'+p.cause+'<br><button class="back" id="bk">← back to galaxy</button>';
  document.getElementById('bk').onclick=function(){pick(-1)};}
 function pick(i){sel=i;ui();}
-cv.addEventListener('pointerdown',function(e){drag=true;lx=e.clientX;ly=e.clientY;cv.style.cursor='grabbing';});
-addEventListener('pointerup',function(){drag=false;cv.style.cursor='grab';});
+cv.addEventListener('pointerdown',function(e){drag=true;lx=e.clientX;ly=e.clientY;cv.style.cursor='grabbing';},{passive:true});
+addEventListener('pointerup',function(){drag=false;cv.style.cursor='grab';},{passive:true});
 addEventListener('pointermove',function(e){mx=e.clientX/innerWidth*2-1;my=e.clientY/innerHeight*2-1;
- if(drag&&sel<0){G.rotation.y+=(e.clientX-lx)*.006;ev=Math.max(.55,Math.min(1.35,ev+(e.clientY-ly)*.004));}lx=e.clientX;ly=e.clientY;});
+ if(drag&&sel<0){G.rotation.y+=(e.clientX-lx)*.006;ev=Math.max(.55,Math.min(1.35,ev+(e.clientY-ly)*.004));}lx=e.clientX;ly=e.clientY;},{passive:true});
 addEventListener('resize',resize);addEventListener('keydown',function(e){if(e.key==='Escape')pick(-1)});
 
 function loop(){
