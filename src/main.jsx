@@ -430,7 +430,10 @@ function App() {
       window.setTimeout(() => setDoorMounted(false), 760)
     }, entranceTime)
   }, [archiveProjects.length])
-  const handleDoorUnavailable = useCallback(() => { setArchiveUnlocked(true); setArchiveReady(true); setDoorMounted(false) }, [])
+  const handleDoorUnavailable = useCallback(() => {
+    document.getElementById('deep-ocean-frame')?.contentWindow?.postMessage({ type: 'deep-ocean-active', active: true }, '*')
+    setArchiveUnlocked(true); setArchiveReady(true); setDoorMounted(false)
+  }, [])
   useEffect(() => {
     if (!doorMounted || archiveReady) { document.body.style.overflow = ''; return undefined }
     const previous = document.body.style.overflow; document.body.style.overflow = 'hidden'

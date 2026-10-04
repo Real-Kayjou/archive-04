@@ -40,7 +40,6 @@ function disposeScene(scene, renderer) {
   })
   scene.environment?.dispose?.()
   renderer.dispose()
-  renderer.forceContextLoss?.()
 }
 
 export default function ArchiveAirlock({ onProgress, onOpen, onUnavailable }) {
