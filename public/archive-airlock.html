@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Archive Airlock — Iris 3D</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--obs:#040B27;--mid:#121F50;--slate:#2A3B80;--iris:#4255B2;--med:#6274E0;--ink:#EAF0FF;--mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;height:100%;min-height:100svh;overflow:hidden;color:var(--ink);font-family:var(--mono);background:radial-gradient(ellipse at 50% 48%,#17267a 0,#0b1544 42%,var(--obs) 78%)}
+canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
+.tag,.cta{position:fixed;left:50%;transform:translateX(-50%);z-index:3;font-size:.64rem;letter-spacing:.15em;background:rgba(4,11,39,.92);box-shadow:inset 0 0 0 1px rgba(160,175,255,.45)}
+.tag{top:calc(env(safe-area-inset-top,0px) + 14px);display:flex;align-items:center;gap:10px;padding:11px 18px;white-space:nowrap}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--med);box-shadow:0 0 8px var(--med)}
+.busy .dot{animation:blink .5s steps(2) infinite}
+@keyframes blink{50%{opacity:.2}}
+.cta{bottom:calc(env(safe-area-inset-bottom,0px) + 18px);display:flex;align-items:center;gap:34px;padding:19px 22px;border:0;cursor:pointer;color:var(--ink);font-family:inherit;overflow:hidden;
+  clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px));transition:background .3s,box-shadow .3s}
+.cta::before{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgba(98,116,224,.45),transparent 70%);transform:translateX(-120%);transition:transform .8s}
+.cta:hover::before,.cta:focus-visible::before{transform:translateX(120%)}
+.cta:hover:not([disabled]),.cta:focus-visible{background:rgba(18,31,80,.97);box-shadow:inset 0 0 0 1px var(--med);outline:0}
+.cta b{font-weight:400;display:inline-block;transition:transform .9s cubic-bezier(.65,0,.35,1)}
+.isopen .cta b{transform:rotate(180deg)}
+.cta[disabled]{cursor:progress;opacity:.85}
+.data{position:fixed;top:50%;z-index:2;font-size:.58rem;letter-spacing:.14em;line-height:2;opacity:.7;transform:translateY(-50%);white-space:nowrap;pointer-events:none}
+.data.l{left:3vw}.data.r{right:3vw;text-align:right}.data b{font-weight:500}
+@media (max-width:900px){.data{display:none}}
+.slot{position:fixed;inset:0;display:grid;place-content:center;text-align:center;opacity:0;pointer-events:none;z-index:2}
+.slot h2{margin:0;font-weight:500;letter-spacing:.55em;font-size:clamp(.9rem,2.6vw,1.5rem);text-shadow:0 0 30px var(--obs),0 0 12px var(--obs)}
+.slot p{margin:.7rem 0 0;font-size:.66rem;letter-spacing:.22em;opacity:.8}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="tag"><i class="dot"></i><span id="status">ARCHIVE AIRLOCK / SEALED</span></div>
+<div class="data l"><div>PRESSURE <b id="rP">1.00 ATM</b></div><div>LOCK RING <b id="rL">12 / 12</b></div><div>IRIS <b id="rI">0%</b></div></div>
+<div class="data r"><div>SECTOR <b>04-ARCHIVE</b></div><div>CLEARANCE <b id="rC">PENDING</b></div><div>BLADES <b>8 × TITANIUM</b></div></div>
+<div class="slot" id="slot"><h2>ARCHIVE</h2><p>ACCESS GRANTED</p></div>
+<button class="cta" id="cta"><span id="ctaText">UNLOCK ARCHIVE</span><b>↘</b></button>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+  var $=function(i){return document.getElementById(i)}, rad=function(d){return d*Math.PI/180};
+  var SPEED=matchMedia('(prefers-reduced-motion: reduce)').matches?0.2:1;   /* raise to slow everything down */
+  var TOTAL=12600, R=2.5, NB=8, NL=12, NT=48;
+  var COL={obs:0x040B27,mid:0x121F50,slate:0x2A3B80,iris:0x4255B2,med:0x6274E0,ink:0xEAF0FF};
+
+  /* ---------- renderer / scene ---------- */
+  var cv=$('c'), ren=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true,stencil:true,powerPreference:'high-performance'});
+  ren.setPixelRatio(Math.min(devicePixelRatio||1,2)); ren.outputEncoding=THREE.sRGBEncoding; ren.toneMapping=THREE.ACESFilmicToneMapping; ren.toneMappingExposure=1.15;
+  var scene=new THREE.Scene(), cam=new THREE.PerspectiveCamera(40,1,.1,60), z0=10;
+  /* fake studio environment so the metal has something to reflect */
+  var ec=document.createElement('canvas'); ec.width=ec.height=128; var g=ec.getContext('2d'), gr=g.createLinearGradient(0,0,0,128);
+  gr.addColorStop(0,'#8fa0ff'); gr.addColorStop(.35,'#2A3B80'); gr.addColorStop(.7,'#121F50'); gr.addColorStop(1,'#040B27'); g.fillStyle=gr; g.fillRect(0,0,128,128);
+  g.fillStyle='#EAF0FF'; g.fillRect(20,18,88,8); g.fillRect(8,60,6,40); g.fillRect(114,60,6,40);
+  var env=new THREE.CubeTexture([ec,ec,ec,ec,ec,ec]); env.needsUpdate=true; scene.environment=env;
+  scene.add(new THREE.AmbientLight(0x2A3B80,.7));
+  var key=new THREE.DirectionalLight(0xEAF0FF,1.1); key.position.set(-3,4,6); scene.add(key);
+  var rim=new THREE.DirectionalLight(0x6274E0,.8); rim.position.set(4,-3,3); scene.add(rim);
+  var back=new THREE.PointLight(0x9fb0ff,0,14,1.4); back.position.set(0,0,-1.2); scene.add(back);
+  var door=new THREE.Group(); scene.add(door);
+  function metal(c,r,m){return new THREE.MeshStandardMaterial({color:c,roughness:r==null?.38:r,metalness:m==null?.7:m,envMapIntensity:1})}
+  function stencilMat(m){m.stencilWrite=true;m.stencilRef=1;m.stencilFunc=THREE.EqualStencilFunc;return m}
+
+  /* ---------- behind the door: light, rays, tunnel ---------- */
+  var disc=new THREE.Mesh(new THREE.CircleGeometry(R*1.02,64),new THREE.MeshBasicMaterial({color:COL.obs})); disc.position.z=-1.6; door.add(disc);
+  var lc=document.createElement('canvas'); lc.width=lc.height=256; g=lc.getContext('2d'); gr=g.createRadialGradient(128,128,0,128,128,128);
+  [[0,'#ffffff'],[.12,'#cdd6ff'],[.3,'#6274E0'],[.55,'#2A3B80'],[.8,'#121F50'],[1,'#040B27']].forEach(function(s){gr.addColorStop(s[0],s[1])}); g.fillStyle=gr; g.fillRect(0,0,256,256);
+  var glow=new THREE.Mesh(new THREE.CircleGeometry(R*1.02,64),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(lc),transparent:true,opacity:0,toneMapped:false})); glow.position.z=-1.55; door.add(glow);
+  var rc=document.createElement('canvas'); rc.width=rc.height=512; g=rc.getContext('2d'); g.translate(256,256);
+  for(var i=0;i<16;i++){g.save();g.rotate(i*Math.PI/8);var rg=g.createLinearGradient(0,0,250,0);rg.addColorStop(0,'rgba(234,240,255,.55)');rg.addColorStop(1,'rgba(234,240,255,0)');g.fillStyle=rg;g.beginPath();g.moveTo(0,0);g.lineTo(250,-9);g.lineTo(250,9);g.fill();g.restore()}
+  var rays=new THREE.Mesh(new THREE.CircleGeometry(R*1.02,64),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(rc),transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false})); rays.position.z=-1.5; door.add(rays);
+  var tun=[]; for(i=0;i<4;i++){var tm=new THREE.Mesh(new THREE.TorusGeometry(R*.96,.014,8,120),new THREE.MeshBasicMaterial({color:COL.ink,transparent:true,opacity:0,toneMapped:false})); door.add(tm); tun.push(tm)}
+
+  /* ---------- housing ---------- */
+  var hs=new THREE.Shape(); hs.absarc(0,0,2.98,0,Math.PI*2,false); var hole=new THREE.Path(); hole.absarc(0,0,R,0,Math.PI*2,true); hs.holes.push(hole);
+  var house=new THREE.Mesh(new THREE.ExtrudeGeometry(hs,{depth:.32,bevelEnabled:true,bevelThickness:.05,bevelSize:.05,bevelSegments:3,curveSegments:96}),metal(0x16246e,.42,.75)); house.position.z=.2; door.add(house);
+  var lip=new THREE.Mesh(new THREE.TorusGeometry(R+.02,.035,12,128),new THREE.MeshBasicMaterial({color:COL.ink,toneMapped:false})); lip.position.z=.58; door.add(lip);
+  var dots=new THREE.Mesh(new THREE.TorusGeometry(2.7,.012,6,160),new THREE.MeshBasicMaterial({color:COL.iris,toneMapped:false})); dots.position.z=.58; door.add(dots);
+
+  /* stencil mask so the swinging blades are clipped to the circular opening */
+  var mask=new THREE.Mesh(new THREE.CircleGeometry(R,96),new THREE.MeshBasicMaterial({colorWrite:false,depthWrite:false}));
+  mask.material.stencilWrite=true; mask.material.stencilRef=1; mask.material.stencilFunc=THREE.AlwaysStencilFunc; mask.material.stencilZPass=THREE.ReplaceStencilOp; mask.renderOrder=1; mask.position.z=.3; door.add(mask);
+
+  /* ---------- the iris: 8 extruded blades, each pivoting at its rim corner ---------- */
+  var blades=[];
+  for(i=0;i<NB;i++){
+    var a=90-45*i, P=[R*Math.cos(rad(a-30)),R*Math.sin(rad(a-30))];
+    var sh=new THREE.Shape(); sh.moveTo(-P[0],-P[1]); sh.lineTo(R*Math.cos(rad(a-30))-P[0],R*Math.sin(rad(a-30))-P[1]);
+    sh.absarc(-P[0],-P[1],R,rad(a-30),rad(a+30),false); sh.lineTo(-P[0],-P[1]);
+    var geo=new THREE.ExtrudeGeometry(sh,{depth:.07,bevelEnabled:true,bevelThickness:.018,bevelSize:.018,bevelSegments:2,curveSegments:40});
+    var mt=stencilMat(metal(i%2?0x1a2b82:0x22369a,.34,.72)); var m=new THREE.Mesh(geo,mt); m.renderOrder=2;
+    var lm=new THREE.LineSegments(new THREE.EdgesGeometry(geo,35),stencilMat(new THREE.LineBasicMaterial({color:COL.med}))); lm.renderOrder=3; lm.position.z=.001;
+    var bg=new THREE.Group(); bg.add(m,lm);
+    [[.72,.07,.075],[.5,.03,.075]].forEach(function(d){var c=new THREE.Mesh(new THREE.CircleGeometry(d[1]*1.5,24),stencilMat(new THREE.MeshBasicMaterial({color:COL.ink,toneMapped:false})));
+      c.position.set(R*d[0]*Math.cos(rad(a))-P[0],R*d[0]*Math.sin(rad(a))-P[1],d[2]+.02); c.renderOrder=3; bg.add(c)});
+    var ln=new THREE.Mesh(new THREE.RingGeometry(.15,.17,32),stencilMat(new THREE.MeshBasicMaterial({color:COL.med,toneMapped:false}))); ln.renderOrder=3;
+    ln.position.set(R*.86*Math.cos(rad(a))-P[0],R*.86*Math.sin(rad(a))-P[1],.095); bg.add(ln);
+    bg.position.set(P[0],P[1],.06+i*.008); door.add(bg); blades.push(bg);
+  }
+
+  /* ---------- tick lights + rotating lock ring with 12 bolts ---------- */
+  var ticks=[]; for(i=0;i<NT;i++){var tk=new THREE.Mesh(new THREE.BoxGeometry(.07,.2,.05),new THREE.MeshStandardMaterial({color:COL.mid,emissive:0x000000,roughness:.5,metalness:.4}));
+    var ta=rad(360/NT*i+90); tk.position.set(2.8*Math.cos(ta),2.8*Math.sin(ta),.6); tk.rotation.z=ta-Math.PI/2; door.add(tk); ticks.push(tk)}
+  var ringB=new THREE.Group(); ringB.position.z=.6; door.add(ringB);
+  ringB.add(new THREE.Mesh(new THREE.TorusGeometry(2.38,.02,8,140),new THREE.MeshBasicMaterial({color:COL.iris,toneMapped:false})));
+  var lugs=[]; for(i=0;i<NL;i++){var lg=new THREE.Group(), la=rad(360/NL*i+90); lg.rotation.z=la-Math.PI/2; lg.position.set(0,0,0);
+    var body=new THREE.Mesh(new THREE.BoxGeometry(.3,.4,.18),metal(0x1b2c86,.3,.8)); body.position.y=2.52; var cap=new THREE.Mesh(new THREE.BoxGeometry(.07,.2,.2),new THREE.MeshBasicMaterial({color:COL.med,toneMapped:false})); cap.position.y=2.52; cap.position.z=.01;
+    var holder=new THREE.Group(); holder.add(body,cap); lg.add(holder); ringB.add(lg); lugs.push(holder)}
+
+  /* ---------- center emblem (fades away) ---------- */
+  var emb=new THREE.Group(); emb.position.z=.32; door.add(emb); var embMats=[];
+  function em(mesh){mesh.material.transparent=true;embMats.push(mesh.material);emb.add(mesh);return mesh}
+  em(new THREE.Mesh(new THREE.CylinderGeometry(.62,.62,.1,48),metal(0x050c2b,.3,.8))).rotation.x=Math.PI/2;
+  em(new THREE.Mesh(new THREE.TorusGeometry(.62,.025,10,64),new THREE.MeshBasicMaterial({color:COL.ink}))).position.z=.06;
+  em(new THREE.Mesh(new THREE.TorusGeometry(.44,.012,8,64),new THREE.MeshBasicMaterial({color:COL.med}))).position.z=.07;
+  for(i=0;i<3;i++){var ar=em(new THREE.Mesh(new THREE.BoxGeometry(.08,.2,.05),new THREE.MeshBasicMaterial({color:COL.ink}))); var aa=rad(90+120*i); ar.position.set(.34*Math.cos(aa),.34*Math.sin(aa),.08); ar.rotation.z=aa-Math.PI/2}
+  em(new THREE.Mesh(new THREE.CircleGeometry(.1,24),new THREE.MeshBasicMaterial({color:COL.med}))).position.z=.09;
+
+  /* ---------- floating dust for depth ---------- */
+  var N=260, pa=new Float32Array(N*3); for(i=0;i<N;i++){pa[i*3]=(Math.random()-.5)*14;pa[i*3+1]=(Math.random()-.5)*9;pa[i*3+2]=Math.random()*5-1}
+  var pg=new THREE.BufferGeometry(); pg.setAttribute('position',new THREE.BufferAttribute(pa,3));
+  var dust=new THREE.Points(pg,new THREE.PointsMaterial({color:0x9fb0ff,size:.035,transparent:true,opacity:.55,blending:THREE.AdditiveBlending,depthWrite:false,sizeAttenuation:true})); scene.add(dust);
+
+  /* ---------- easing + timeline (everything is a pure function of time, so it plays forward AND backward) ---------- */
+  function bez(x1,y1,x2,y2){return function(x){if(x<=0)return 0;if(x>=1)return 1;var lo=0,hi=1,t=x,k;for(var j=0;j<22;j++){k=3*x1*t*(1-t)*(1-t)+3*x2*t*t*(1-t)+t*t*t;if(k<x)lo=t;else hi=t;t=(lo+hi)/2}return 3*y1*t*(1-t)*(1-t)+3*y2*t*t*(1-t)+t*t*t}}
+  var E={io:bez(.65,0,.25,1),slow:bez(.55,0,.15,1),over:bez(.3,1.25,.5,1),soft:bez(.4,0,.2,1),out:bez(0,0,.4,1),lin:function(x){return Math.max(0,Math.min(1,x))}};
+  function seg(n,at,dur,e){return e((n-at)/dur)}
+  var tmpA=new THREE.Color(COL.mid), tmpB=new THREE.Color(COL.ink), tmpC=new THREE.Color();
+  var mx=0,my=0,smx=0,smy=0; addEventListener('pointermove',function(e){mx=e.clientX/innerWidth-.5;my=e.clientY/innerHeight-.5});
+
+  function pose(n,now){
+    for(var i=0;i<NT;i++){var u=seg(n,300+i*55,350,E.out); tmpC.copy(tmpA).lerp(tmpB,u); ticks[i].material.color.copy(tmpC); ticks[i].material.emissive.copy(tmpB).multiplyScalar(u*.9)}
+    ringB.rotation.z=-rad(150)*seg(n,1000,4200,E.io);
+    for(i=0;i<NL;i++)lugs[i].position.y=.46*seg(n,3400+Math.floor(i/2)*110,1100,E.over);
+    var eu=seg(n,4200,2200,E.io); emb.visible=eu<1; emb.rotation.z=rad(120)*eu; emb.scale.setScalar(1+.6*eu); embMats.forEach(function(m){m.opacity=1-eu});
+    for(i=0;i<NB;i++){var u=seg(n,5000+i*110,6800,E.slow), nud=Math.sin(Math.min(1,(n-5000-i*110)/500)*Math.PI)*(n>5000+i*110&&n<5600+i*110?1:0);
+      blades[i].rotation.z=rad(58)*u-rad(1.6)*nud*(1-u)}
+    var gu=seg(n,4600,7200,E.lin); glow.material.opacity=gu<.18?gu/.18*.28:.28+(gu-.18)/.82*.72; back.intensity=7*seg(n,4600,7200,E.soft);
+    rays.material.opacity=.8*seg(n,6200,5600,E.soft); rays.rotation.z=now*.0002;
+    var tv=n>5200?1:0; tun.forEach(function(t,k){var p=((now*.00026)+k/4)%1; t.scale.setScalar(.08+1.07*p); t.position.z=-1.45-(1-p)*3.2; t.material.opacity=tv*gu*(p<.3?p/.3:(1-p)/.7)*.8});
+    var cu=seg(n,4600,7800,E.soft); z=z0*(1-.2*cu);
+  }
+  var z=10;
+
+  /* ---------- sizing, loop, controls ---------- */
+  function size(){var w=innerWidth,h=innerHeight; ren.setSize(w,h,false); cam.aspect=w/h; cam.updateProjectionMatrix(); var t=2*Math.tan(rad(20)); z0=Math.max(7.9/t,7.0/(t*cam.aspect))}
+  addEventListener('resize',size); size();
+
+  var st=$('status'),cta=$('cta'),txt=$('ctaText'),body=document.body, n=0, dir=0, state='sealed', last=performance.now();
+  function fwd(v){return v<300?'SEALED':v<3200?'AUTHORIZING':v<3500?'ROTATING LOCK RING':v<4700?'BOLTS RETRACTING':v<5200?'EQUALIZING PRESSURE':v<11800?'IRIS OPENING':'OPEN'}
+  function rev(v){return v>11800?'SEALING':v>5200?'IRIS CLOSING':v>3400?'ENGAGING BOLTS':v>300?'LOCKING':'SEALED'}
+  function cl(x){return Math.max(0,Math.min(1,x))}
+  function hud(){
+    st.textContent='ARCHIVE AIRLOCK / '+(dir>=0?fwd(n):rev(n));
+    $('rL').textContent=Math.max(0,NL-Math.round(cl((n-3400)/1650)*NL))+' / '+NL;
+    $('rI').textContent=Math.round(cl((n-5000)/7500)*100)+'%';
+    $('rP').textContent=(1-.62*cl((n-4700)/6000)).toFixed(2)+' ATM';
+    $('rC').textContent=n>11800?'GRANTED':n>300?'VERIFYING':'PENDING';
+    var s=seg(n,10800,1700,E.out); $('slot').style.opacity=s; $('slot').style.transform='translateY('+(10*(1-s))+'px)';
+  }
+  function finish(){
+    cta.disabled=false; body.classList.remove('busy');
+    if(dir>0){n=TOTAL;state='open';txt.textContent='RESEAL ARCHIVE';body.classList.add('isopen');st.textContent='ARCHIVE AIRLOCK / OPEN';document.dispatchEvent(new CustomEvent('airlock:open')); parent.postMessage({type:'archive-airlock-open'},'*')}
+    else{n=0;state='sealed';txt.textContent='UNLOCK ARCHIVE';body.classList.remove('isopen');st.textContent='ARCHIVE AIRLOCK / SEALED';document.dispatchEvent(new CustomEvent('airlock:closed'))}
+    dir=0;
+  }
+  function frame(now){
+    requestAnimationFrame(frame);
+    var dt=Math.min(50,now-last); last=now;
+    if(dir!==0){n+=dir*(dir<0?1.1:1)*dt/SPEED; if(dir>0&&n>=TOTAL||dir<0&&n<=0){finish()} hud()}
+    pose(n,now);
+    smx+=(mx-smx)*.04; smy+=(my-smy)*.04;
+    cam.position.set(smx*1.6,-smy*1.0,z); cam.lookAt(0,0,0);
+    door.rotation.y=smx*.6; door.rotation.x=smy*.4;
+    dust.rotation.y=now*.00004; dust.position.y=Math.sin(now*.0003)*.1;
+    ren.render(scene,cam);
+  }
+  function go(d){dir=d;cta.disabled=true;body.classList.add('busy');txt.textContent=d>0?'AUTHORIZING…':'SEALING…'}
+  cta.addEventListener('click',function(){go(state==='sealed'?1:-1)});
+  window.Airlock={open:function(){state==='sealed'&&go(1)},close:function(){state==='open'&&go(-1)}};
+  requestAnimationFrame(frame); hud();
+})();
+</script>
+</body>
+</html>
