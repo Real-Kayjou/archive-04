@@ -52,6 +52,7 @@ export default function ArchiveAirlock({ onProgress, onOpen, onUnavailable }) {
   const clearanceRef = useRef(null)
   const buttonTextRef = useRef(null)
   const startedRef = useRef(false)
+  const activateRef = useRef(null)
 
   useEffect(() => {
     const THREE = window.THREE
@@ -130,13 +131,13 @@ export default function ArchiveAirlock({ onProgress, onOpen, onUnavailable }) {
     const loop = (now) => { if (disposed) return; frame = requestAnimationFrame(loop); const delta = Math.min(50, now - last); last = now; if (direction) { progress += direction * (direction < 0 ? 1.1 : 1) * delta / (TOTAL * speed); progress = clamp(progress); if (progress === 1 || progress === 0) { direction = 0; onOpen?.(progress === 1) } } smoothX += (mouseX - smoothX) * .04; smoothY += (mouseY - smoothY) * .04; pose(progress * TOTAL, now); hud(); onProgress?.(progress); renderer.render(scene, camera) }
     const start = () => { if (startedRef.current || disposed) return; startedRef.current = true; direction = 1; buttonRef.current?.focus() }
     const click = () => { if (!direction) { if (progress >= 1) direction = -1; else start() } }
-    const key = (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); click() } }
     const resize = () => size()
-    size(); pose(0, performance.now()); hud(); window.addEventListener('resize', resize); window.addEventListener('orientationchange', resize); window.addEventListener('pointermove', move, { passive: true }); buttonRef.current?.addEventListener('click', click); buttonRef.current?.addEventListener('keydown', key); buttonRef.current?.focus(); loop(performance.now())
-    return () => { disposed = true; cancelAnimationFrame(frame); window.removeEventListener('resize', resize); window.removeEventListener('orientationchange', resize); window.removeEventListener('pointermove', move); buttonRef.current?.removeEventListener('click', click); buttonRef.current?.removeEventListener('keydown', key); disposeScene(scene, renderer) }
+    activateRef.current = click
+    size(); pose(0, performance.now()); hud(); window.addEventListener('resize', resize); window.addEventListener('orientationchange', resize); window.addEventListener('pointermove', move, { passive: true }); buttonRef.current?.focus(); loop(performance.now())
+    return () => { disposed = true; activateRef.current = null; cancelAnimationFrame(frame); window.removeEventListener('resize', resize); window.removeEventListener('orientationchange', resize); window.removeEventListener('pointermove', move); disposeScene(scene, renderer) }
   }, [onProgress, onOpen, onUnavailable])
 
-  return <div className="archive-airlock" role="dialog" aria-modal="true" aria-label="Archive airlock"><canvas ref={canvasRef} /><div className="airlock-tag"><i /> <span ref={statusRef}>ARCHIVE AIRLOCK / SEALED</span></div><div className="airlock-data airlock-data-left"><div>PRESSURE <b ref={pressureRef}>1.00 ATM</b></div><div>LOCK RING <b ref={lockRef}>12 / 12</b></div><div>IRIS <b ref={irisRef}>0%</b></div></div><div className="airlock-data airlock-data-right"><div>SECTOR <b>04-ARCHIVE</b></div><div>CLEARANCE <b ref={clearanceRef}>PENDING</b></div><div>BLADES <b>8 × TITANIUM</b></div></div><button ref={buttonRef} className="airlock-button" type="button"><span ref={buttonTextRef}>UNLOCK ARCHIVE</span><b>↘</b></button></div>
+  return <div className="archive-airlock" role="dialog" aria-modal="true" aria-label="Archive airlock"><canvas ref={canvasRef} /><div className="airlock-tag"><i /> <span ref={statusRef}>ARCHIVE AIRLOCK / SEALED</span></div><div className="airlock-data airlock-data-left"><div>PRESSURE <b ref={pressureRef}>1.00 ATM</b></div><div>LOCK RING <b ref={lockRef}>12 / 12</b></div><div>IRIS <b ref={irisRef}>0%</b></div></div><div className="airlock-data airlock-data-right"><div>SECTOR <b>04-ARCHIVE</b></div><div>CLEARANCE <b ref={clearanceRef}>PENDING</b></div><div>BLADES <b>8 × TITANIUM</b></div></div><button ref={buttonRef} className="airlock-button" type="button" onClick={() => activateRef.current?.()} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); activateRef.current?.() } }}><span ref={buttonTextRef}>UNLOCK ARCHIVE</span><b>↘</b></button></div>
 }
 
 export { SPEED, REVEAL_START, HOVER_TILT }
