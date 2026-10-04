@@ -435,10 +435,9 @@ function App() {
     setArchiveUnlocked(true); setArchiveReady(true); setDoorMounted(false)
   }, [])
   useEffect(() => {
-    if (!doorMounted || archiveReady) { document.body.style.overflow = ''; return undefined }
-    const previous = document.body.style.overflow; document.body.style.overflow = 'hidden'
+    if (!doorMounted || archiveReady) return undefined
     document.getElementById('deep-ocean-frame')?.contentWindow?.postMessage({ type: 'deep-ocean-active', active: false }, '*')
-    return () => { document.body.style.overflow = previous }
+    return undefined
   }, [doorMounted, archiveReady])
   const addProject = (project) => {
     setArchiveProjects((current) => [...current, project])
@@ -448,7 +447,7 @@ function App() {
     } catch { /* keep the project in the current session if storage is blocked */ }
     setComposerOpen(false)
   }
-  return <main><div className="site-content" aria-hidden={labOpen || !archiveReady ? 'true' : undefined} inert={labOpen || !archiveReady || undefined}>
+  return <main><div className="site-content" aria-hidden={labOpen ? 'true' : undefined} inert={labOpen || undefined}>
     <OceanBackground /><HudTelemetry />
     <div className="grain" />
     <header className="topbar"><a className="brand" href="#top"><img className="brand-mark" src="/favicon.svg" alt="Archive 04 mark" width="27" height="27" /><span className="brand-type"><small>ARCHIVE</small><b>04</b></span></a><div className="status"><span className="status-dot" /> SYSTEM / OBSERVING</div><button className="sound-control" onClick={toggleSound} aria-label="Toggle ambient sound">{sound ? 'SOUND ON' : 'SOUND OFF'} <span className={sound ? 'sound-bars active' : 'sound-bars'}><i /><i /><i /></span></button></header>
