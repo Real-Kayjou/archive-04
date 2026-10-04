@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import * as BundledThree from 'three'
 
 const SPEED = 1
 const REDUCED_SPEED = 0.2
@@ -55,7 +56,7 @@ export default function ArchiveAirlock({ onProgress, onOpen, onUnavailable }) {
   const activateRef = useRef(null)
 
   useEffect(() => {
-    const THREE = window.THREE
+    const THREE = window.THREE || BundledThree
     if (!THREE || !canvasRef.current) { onUnavailable?.(); return undefined }
 
     let renderer
