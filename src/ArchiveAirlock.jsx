@@ -56,10 +56,11 @@ export default function ArchiveAirlock({ onProgress, onOpen, onUnavailable }) {
 
   useEffect(() => {
     const THREE = window.THREE || BundledThree
-    if (!THREE || !canvasRef.current) { onUnavailable?.(); return undefined }
+    const syncOverlay = () => { const target = document.getElementById('archive'); const overlay = canvasRef.current?.parentElement; if (!target || !overlay) return; const rect = target.getBoundingClientRect(); overlay.style.left = `${rect.left}px`; overlay.style.top = `${rect.top}px`; overlay.style.width = `${rect.width}px`; overlay.style.height = `${rect.height}px` }
+    if (!THREE || !canvasRef.current) { syncOverlay(); activateRef.current = () => onOpen?.(true); onProgress?.(1); onUnavailable?.(); return undefined }
 
     let renderer
-    try { renderer = new THREE.WebGLRenderer({ canvas: canvasRef.current, antialias: true, alpha: true, stencil: true, powerPreference: 'high-performance' }) } catch { onUnavailable?.(); return undefined }
+    try { renderer = new THREE.WebGLRenderer({ canvas: canvasRef.current, antialias: true, alpha: true, stencil: true, powerPreference: 'default' }) } catch (error) { console.error('Archive airlock renderer failed', error); syncOverlay(); activateRef.current = () => onOpen?.(true); onProgress?.(1); onUnavailable?.(); return undefined }
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
     renderer.outputEncoding = THREE.sRGBEncoding
     renderer.toneMapping = THREE.ACESFilmicToneMapping
@@ -122,7 +123,6 @@ export default function ArchiveAirlock({ onProgress, onOpen, onUnavailable }) {
     let width = 1; let height = 1; let z0 = 10; let progress = 0; let direction = 0; let last = performance.now(); let frame = 0; let disposed = false; let mouseX = 0; let mouseY = 0; let smoothX = 0; let smoothY = 0
     const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
     const speed = reduced ? REDUCED_SPEED : SPEED
-    const syncOverlay = () => { const target = document.getElementById('archive'); const overlay = canvasRef.current?.parentElement; if (!target || !overlay) return; const rect = target.getBoundingClientRect(); overlay.style.left = `${rect.left}px`; overlay.style.top = `${rect.top}px`; overlay.style.width = `${rect.width}px`; overlay.style.height = `${rect.height}px` }
     const size = () => { const rect = canvasRef.current?.parentElement?.getBoundingClientRect(); width = Math.max(1, rect?.width || window.innerWidth); height = Math.max(1, rect?.height || window.innerHeight); renderer.setSize(width, height, false); camera.aspect = width / height; camera.updateProjectionMatrix(); const tangent = 2 * Math.tan(rad(20)); z0 = Math.max(7.9 / tangent, 7 / (tangent * camera.aspect)); syncOverlay() }
     const move = (event) => { const rect = canvasRef.current?.parentElement?.getBoundingClientRect(); mouseX = event.clientX / Math.max(1, rect?.width || window.innerWidth) - .5; mouseY = event.clientY / Math.max(1, rect?.height || window.innerHeight) - .5 }
     const pose = (value, now) => {
