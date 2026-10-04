@@ -350,13 +350,32 @@ function GalaxyDimension({ projects, origin, closing, onClose, onAddDeadProject 
   </div>
 }
 
+function ArchiveDimension({ projects, origin, onClose, onProject, onAdd }) {
+  const closeRef = useRef(null)
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const key = (event) => { if (event.key === 'Escape') { event.preventDefault(); onClose() } }
+    window.addEventListener('keydown', key)
+    window.setTimeout(() => closeRef.current?.focus(), 90)
+    return () => { document.body.style.overflow = previousOverflow; window.removeEventListener('keydown', key) }
+  }, [onClose])
+  return <section className="archive-dimension" style={{ '--archive-origin-x': `${origin.x}px`, '--archive-origin-y': `${origin.y}px` }} role="dialog" aria-modal="true" aria-label="Archive dimension">
+    <div className="archive-dimension-field" aria-hidden="true"><i /><i /><i /></div>
+    <header className="archive-dimension-head"><div><small>DIMENSION 02 / ARCHIVE VAULT</small><strong>EXHIBIT MEMORY / LIVE</strong></div><div><button onClick={onAdd}>ADD EXHIBIT +</button><button ref={closeRef} onClick={onClose}>EXIT ↙</button></div></header>
+    <div className="archive-dimension-core"><aside><span>02</span><i /><small>ALL SIGNALS<br />INDEXED</small></aside><main><div className="archive-vault-title"><p>ARCHIVE / {String(projects.length).padStart(3, '0')} ACTIVE EXHIBITS</p><h2>Enter the<br /><em>memory vault.</em></h2><span>SELECT AN EXHIBIT TO EXPAND ITS RECORD</span></div><div className="archive-vault-grid">{projects.map((project, index) => <button className={`vault-card vault-${project.tone}`} key={project.id} onClick={() => onProject(project)}><span className="vault-card-index">{String(index + 1).padStart(3, '0')}</span><span className="vault-card-orbit" /><small>{project.type}</small><strong>{project.title}</strong><em>{project.note}</em><b>OPEN RECORD ↗</b></button>)}</div></main></div>
+  </section>
+}
+
 function App() {
   const [sound, setSound] = useState(false)
   const [activeProject, setActiveProject] = useState(null)
   const [visibleProjects, setVisibleProjects] = useState([])
-  const [archiveUnlocked, setArchiveUnlocked] = useState(() => { const forced = new URLSearchParams(window.location.search).get('door') === '1'; if (forced) return false; try { return window.sessionStorage.getItem('archive-04-unlocked') === '1' } catch { return false } })
-  const [archiveReady, setArchiveReady] = useState(archiveUnlocked)
-  const [doorMounted, setDoorMounted] = useState(!archiveUnlocked)
+  const [archiveUnlocked, setArchiveUnlocked] = useState(true)
+  const [archiveReady, setArchiveReady] = useState(true)
+  const [doorMounted, setDoorMounted] = useState(false)
+  const [archiveOpen, setArchiveOpen] = useState(false)
+  const [archiveOrigin, setArchiveOrigin] = useState({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
   const archiveStageRef = useRef(null)
   const firstArchiveRef = useRef(null)
   const oceanResumed = useRef(false)
@@ -368,6 +387,7 @@ function App() {
   const [labOrigin, setLabOrigin] = useState({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
   const audio = useRef(null)
   const labButton = useRef(null)
+  const archiveButton = useRef(null)
   const closingLab = useRef(false)
   useEffect(() => {
     try {
@@ -393,6 +413,11 @@ function App() {
     closingLab.current = false
     window.history.pushState({ lab: true }, '', '#lab')
     setLabOpen(true)
+  }
+  const openArchive = (source = archiveButton.current) => {
+    const rect = source?.getBoundingClientRect()
+    setArchiveOrigin(rect ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : { x: window.innerWidth / 2, y: window.innerHeight / 2 })
+    setArchiveOpen(true)
   }
   const closeLab = () => { if (window.location.hash === '#lab') window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`); animateLabClose() }
   const toggleSound = () => {
@@ -448,14 +473,14 @@ function App() {
     <OceanBackground /><HudTelemetry />
     <div className="grain" />
     <header className="topbar"><a className="brand" href="#top"><img className="brand-mark" src="/favicon.svg" alt="Archive 04 mark" width="27" height="27" /><span className="brand-type"><small>ARCHIVE</small><b>04</b></span></a><div className="status"><span className="status-dot" /> SYSTEM / OBSERVING</div><button className="sound-control" onClick={toggleSound} aria-label="Toggle ambient sound">{sound ? 'SOUND ON' : 'SOUND OFF'} <span className={sound ? 'sound-bars active' : 'sound-bars'}><i /><i /><i /></span></button></header>
-    <section className="hero" id="top"><InfoGraphics variant="hero" /><div className="hero-background-model" aria-hidden="true"><Canvas camera={{ position: [0, 0, 7], fov: 42 }} dpr={[1, 1.5]} gl={{ antialias: true, alpha: true }}><ambientLight intensity={0.3} /><BackgroundArchitecture /></Canvas></div><div className="hero-copy"><p className="eyebrow">KAYJOU / SAIF EDINE JBALI / DIGITAL ARCHIVE</p><h1>I make things with<br /><em>CODE, 3D,</em> and experiments.</h1><p className="hero-note">A collection of spaces, systems, mods, and unfinished ideas. Enter carefully.</p><a className="enter-link hud-button" href="#archive"><span>ENTER THE ARCHIVE</span><b>↘</b></a></div><div className="hero-object"><Lens /></div><div className="hero-coordinates">DEPTH 04.02<br />LAT 36°48'N<br />STATUS: UNFINISHED</div><div className="hero-caption">THE ARCHIVE LENS / SPECIMEN 001</div></section>
+    <section className="hero" id="top"><InfoGraphics variant="hero" /><div className="hero-background-model" aria-hidden="true"><Canvas camera={{ position: [0, 0, 7], fov: 42 }} dpr={[1, 1.5]} gl={{ antialias: true, alpha: true }}><ambientLight intensity={0.3} /><BackgroundArchitecture /></Canvas></div><div className="hero-copy"><p className="eyebrow">KAYJOU / SAIF EDINE JBALI / DIGITAL ARCHIVE</p><h1>I make things with<br /><em>CODE, 3D,</em> and experiments.</h1><p className="hero-note">A collection of spaces, systems, mods, and unfinished ideas. Enter carefully.</p><button ref={archiveButton} className="enter-link hud-button" onClick={() => openArchive()}><span>ENTER THE ARCHIVE</span><b>↘</b></button></div><div className="hero-object"><Lens /></div><div className="hero-coordinates">DEPTH 04.02<br />LAT 36°48'N<br />STATUS: UNFINISHED</div><div className="hero-caption">THE ARCHIVE LENS / SPECIMEN 001</div></section>
     <section className="intro section-shell"><InfoGraphics variant="entry" /><SectionArchitecture variant="entry" /><p className="section-index">01 / ENTRY LOG</p><div className="intro-grid"><h2>Not everything here<br /><span>is finished.</span></h2><p>I’m Kayjou. I work between code, 3D space, game mods, and whatever experiment refuses to leave me alone. This is where the finished work and the interesting failures live together.</p></div></section>
     <section ref={archiveStageRef} className={`archive section-shell archive-reveal-stage ${archiveReady ? 'archive-entry-open' : 'archive-entry-locked'}`} id="archive" style={{ '--archive-open-progress': archiveUnlocked ? 1 : 0 }}><InfoGraphics variant="gallery" /><SectionArchitecture variant="gallery" /><div className="section-heading"><p className="section-index">02 / THE ARCHIVE</p><div className="archive-heading-actions">{archiveReady && <button className="add-exhibit" onClick={() => setComposerOpen(true)}>ADD EXHIBIT +</button>}<span>{archiveReady ? 'SCROLL TO EXAMINE' : 'ACCESS SEALED'}</span></div></div><div className="archive-entry"><div className="project-list">{archiveProjects.map((project, index) => <button ref={index === 0 ? firstArchiveRef : undefined} className={`project project-${project.tone} ${archiveReady ? 'archive-project-enter' : ''} ${visibleProjects.includes(project.id) ? 'project-visible' : ''}`} style={{ '--archive-row-delay': `${index * 90}ms` }} data-project={project.id} key={project.id} onClick={() => setActiveProject(project)} disabled={!archiveReady}><span className="project-id">{project.id}</span><span className="project-visual" style={project.image ? { backgroundImage: `linear-gradient(135deg, #040b27aa, #121f5055), url(${project.image})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}><span className="visual-shape" /><span className="visual-scanline" /><span className="project-callout">EXHIBIT / {project.id}</span></span><span className="project-info"><small>{project.type}</small><strong>{project.title}</strong><em>{project.note}</em><span className="project-status">STATUS // {project.status.replace('-', ' ')}</span></span><span className="project-arrow">↗</span></button>)}</div></div></section>
     <section className="lab section-shell"><InfoGraphics variant="lab" /><SectionArchitecture variant="lab" /><p className="section-index">03 / THE LABORATORY</p><div className="lab-card"><span className="panel-corner corner-a" /><span className="panel-corner corner-b" /><div><p className="label">LIVE LOG / 000</p><h2>Failed experiments<br /><i>kept alive.</i></h2></div><p className="lab-copy">Notes, broken prototypes, strange tests, and half-built things. The process stays visible.</p><button ref={labButton} className="glass-button hud-button" onClick={openLab}><span>OPEN THE LAB</span><b>↗</b></button></div></section>
     <footer className="footer section-shell" id="contact"><InfoGraphics variant="atrium" /><SectionArchitecture variant="atrium" /><p className="section-index">04 / CONTACT CHAMBER</p><h2>Find me outside<br /><span>the archive.</span></h2><div className="footer-links"><a href="https://github.com/Real-Kayjou" target="_blank">GitHub ↗</a><a href="https://www.instagram.com/kay.jou/" target="_blank">Instagram ↗</a><a href="mailto:saiftig450@gmail.com">Email ↗</a></div><p className="copyright">ARCHIVE 04 / KAYJOU / 2026</p></footer>
     <ProjectModal project={activeProject} onClose={() => setActiveProject(null)} />
     {composerOpen && <ProjectComposer onClose={() => setComposerOpen(false)} onSave={addProject} />}
-    </div><span className="sr-only" aria-live="polite">{archiveReady ? 'Archive open' : ''}</span>{doorMounted && <ArchiveAirlock onProgress={updateDoorProgress} onOpen={handleDoorOpen} onUnavailable={handleDoorUnavailable} />}{labOpen && <GalaxyDimension projects={archiveProjects} origin={labOrigin} closing={labClosing} onClose={closeLab} onAddDeadProject={() => setDeadComposerOpen(true)} />}{deadComposerOpen && <div className="lab-compose-layer"><ProjectComposer deadOnly onClose={() => setDeadComposerOpen(false)} onSave={(project) => { addProject(project); setDeadComposerOpen(false) }} /></div>}
+    </div><span className="sr-only" aria-live="polite">{archiveReady ? 'Archive open' : ''}</span>{archiveOpen && <ArchiveDimension projects={archiveProjects} origin={archiveOrigin} onClose={() => setArchiveOpen(false)} onProject={(project) => { setArchiveOpen(false); setActiveProject(project) }} onAdd={() => { setArchiveOpen(false); setComposerOpen(true) }} />}{labOpen && <GalaxyDimension projects={archiveProjects} origin={labOrigin} closing={labClosing} onClose={closeLab} onAddDeadProject={() => setDeadComposerOpen(true)} />}{deadComposerOpen && <div className="lab-compose-layer"><ProjectComposer deadOnly onClose={() => setDeadComposerOpen(false)} onSave={(project) => { addProject(project); setDeadComposerOpen(false) }} /></div>}
   </main>
 }
 
