@@ -367,7 +367,7 @@ function ArchiveDimension({ projects, origin, onClose, onProject, onAdd }) {
   </section>
 }
 
-function BetterAirlock({ onOpen }) {
+function BetterAirlock({ origin, onOpen }) {
   useEffect(() => {
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
@@ -375,7 +375,7 @@ function BetterAirlock({ onOpen }) {
     window.addEventListener('message', receive)
     return () => { document.body.style.overflow = previousOverflow; window.removeEventListener('message', receive) }
   }, [onOpen])
-  return <div className="better-airlock-layer" role="dialog" aria-modal="true" aria-label="Archive airlock"><iframe src="/archive-airlock.html" title="Archive airlock" /></div>
+  return <div className="better-airlock-layer" style={{ '--airlock-origin-x': `${origin.x}px`, '--airlock-origin-y': `${origin.y}px` }} role="dialog" aria-modal="true" aria-label="Archive airlock"><iframe src="/archive-airlock.html" title="Archive airlock" /></div>
 }
 
 function App() {
@@ -387,6 +387,7 @@ function App() {
   const [doorMounted, setDoorMounted] = useState(false)
   const [archiveOpen, setArchiveOpen] = useState(false)
   const [airlockOpen, setAirlockOpen] = useState(false)
+  const [airlockOrigin, setAirlockOrigin] = useState({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
   const [archiveOrigin, setArchiveOrigin] = useState({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
   const archiveStageRef = useRef(null)
   const firstArchiveRef = useRef(null)
@@ -428,7 +429,9 @@ function App() {
   }
   const openArchive = (source = archiveButton.current) => {
     const rect = source?.getBoundingClientRect()
-    setArchiveOrigin(rect ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : { x: window.innerWidth / 2, y: window.innerHeight / 2 })
+    const point = rect ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : { x: window.innerWidth / 2, y: window.innerHeight / 2 }
+    setAirlockOrigin(point)
+    setArchiveOrigin({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
     setAirlockOpen(true)
   }
   const closeLab = () => { if (window.location.hash === '#lab') window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`); animateLabClose() }
@@ -492,7 +495,7 @@ function App() {
     <footer className="footer section-shell" id="contact"><InfoGraphics variant="atrium" /><SectionArchitecture variant="atrium" /><p className="section-index">04 / CONTACT CHAMBER</p><h2>Find me outside<br /><span>the archive.</span></h2><div className="footer-links"><a href="https://github.com/Real-Kayjou" target="_blank">GitHub ↗</a><a href="https://www.instagram.com/kay.jou/" target="_blank">Instagram ↗</a><a href="mailto:saiftig450@gmail.com">Email ↗</a></div><p className="copyright">ARCHIVE 04 / KAYJOU / 2026</p></footer>
     <ProjectModal project={activeProject} onClose={() => setActiveProject(null)} />
     {composerOpen && <ProjectComposer onClose={() => setComposerOpen(false)} onSave={addProject} />}
-    </div><span className="sr-only" aria-live="polite">{archiveReady ? 'Archive open' : ''}</span>{airlockOpen && <BetterAirlock onOpen={() => { setAirlockOpen(false); setArchiveOpen(true) }} />}{archiveOpen && <ArchiveDimension projects={archiveProjects} origin={archiveOrigin} onClose={() => setArchiveOpen(false)} onProject={(project) => { setArchiveOpen(false); setActiveProject(project) }} onAdd={() => { setArchiveOpen(false); setComposerOpen(true) }} />}{labOpen && <GalaxyDimension projects={archiveProjects} origin={labOrigin} closing={labClosing} onClose={closeLab} onAddDeadProject={() => setDeadComposerOpen(true)} />}{deadComposerOpen && <div className="lab-compose-layer"><ProjectComposer deadOnly onClose={() => setDeadComposerOpen(false)} onSave={(project) => { addProject(project); setDeadComposerOpen(false) }} /></div>}
+    </div><span className="sr-only" aria-live="polite">{archiveReady ? 'Archive open' : ''}</span>{airlockOpen && <BetterAirlock origin={airlockOrigin} onOpen={() => { setAirlockOpen(false); setArchiveOpen(true) }} />}{archiveOpen && <ArchiveDimension projects={archiveProjects} origin={archiveOrigin} onClose={() => setArchiveOpen(false)} onProject={(project) => { setArchiveOpen(false); setActiveProject(project) }} onAdd={() => { setArchiveOpen(false); setComposerOpen(true) }} />}{labOpen && <GalaxyDimension projects={archiveProjects} origin={labOrigin} closing={labClosing} onClose={closeLab} onAddDeadProject={() => setDeadComposerOpen(true)} />}{deadComposerOpen && <div className="lab-compose-layer"><ProjectComposer deadOnly onClose={() => setDeadComposerOpen(false)} onSave={(project) => { addProject(project); setDeadComposerOpen(false) }} /></div>}
   </main>
 }
 
