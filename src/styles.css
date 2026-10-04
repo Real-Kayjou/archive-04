@@ -85,3 +85,20 @@ body,button,input,textarea,select{font-family:var(--font-astro)}
 .hero-note,.intro-grid>p,.project-info em,.detail-description,.lab-copy,
 .project-modal>p:not(.label),.lab-chamber-title>p:last-child{word-spacing:.14em}
  .lab-dimension-actions{display:flex;gap:10px;align-items:center;pointer-events:auto}.lab-compose-layer{position:fixed;inset:0;z-index:100}
+/* The archive remains the real page beneath the transparent iris overlay. */
+.archive-reveal-stage{opacity:calc(.35 + var(--archive-open-progress) * .65);transform:scale(calc(1.06 - var(--archive-open-progress) * .06));transform-origin:50% 50%;transition:none}
+.archive-reveal-stage .archive-entry .project-list{filter:none;opacity:1;transform:none;pointer-events:none}
+.archive-reveal-stage.archive-entry-open .archive-entry .project-list{pointer-events:auto}
+.archive-reveal-stage.archive-entry-open .archive-project-enter{opacity:0;transform:translateY(28px);animation:archive-row-in .7s cubic-bezier(.2,.8,.2,1) forwards;animation-delay:var(--archive-row-delay)}
+@keyframes archive-row-in{to{opacity:1;transform:translateY(0)}}
+.archive-airlock{position:fixed;inset:0;z-index:100;pointer-events:auto;overflow:hidden;color:#eaf0ff;font-family:'Astronomic Mono','DM Mono',monospace;background:transparent}
+.archive-airlock canvas{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none}
+.airlock-tag,.airlock-data,.airlock-button{position:absolute;z-index:2;background:#040b27ee;box-shadow:inset 0 0 0 1px #a0afff73;color:#eaf0ff;font-family:'Astronomic Mono','DM Mono',monospace;letter-spacing:.12em}
+.airlock-tag{top:calc(env(safe-area-inset-top,0px) + 14px);left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:10px;padding:11px 18px;font-size:10px;white-space:nowrap}
+.airlock-tag i{width:6px;height:6px;border-radius:50%;background:#6274e0;box-shadow:0 0 8px #6274e0}
+.airlock-data{top:50%;transform:translateY(-50%);font-size:9px;line-height:2;opacity:.72;pointer-events:none;white-space:nowrap}
+.airlock-data-left{left:3vw}.airlock-data-right{right:3vw;text-align:right}.airlock-data b{font-weight:500}
+.airlock-button{left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 18px);transform:translateX(-50%);display:flex;align-items:center;gap:34px;padding:19px 22px;border:0;cursor:pointer;font-size:10px;color:#eaf0ff;clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px));transition:background .3s,box-shadow .3s}
+.airlock-button:hover,.airlock-button:focus-visible{background:#121f50;color:#eaf0ff;box-shadow:inset 0 0 0 1px #6274e0;outline:2px solid transparent}.airlock-button b{font-weight:400;font-size:17px}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+@media(max-width:900px){.airlock-data{display:none}.airlock-tag{font-size:8px}.airlock-button{font-size:8px;gap:18px;padding:14px 16px}}

@@ -165,11 +165,13 @@ function DeepOcean(container, opts) {
   }
   function onVisibility(){ active = !document.hidden; if (active && !raf) loop(); if (!active) { cancelAnimationFrame(raf); raf = 0; } }
   document.addEventListener('visibilitychange', onVisibility);
+  container.__setActive = function (value) { active = value !== false && !document.hidden; if (active && !raf) loop(); if (!active) { cancelAnimationFrame(raf); raf = 0; } };
   loop();
 
   return function dispose() {
     cancelAnimationFrame(raf);
     document.removeEventListener('visibilitychange', onVisibility);
+    delete container.__setActive;
     removeEventListener('pointermove', onMove); document.removeEventListener('mouseleave', onLeave);
     removeEventListener('resize', resize);
     if (cv.parentNode) cv.parentNode.removeChild(cv);
@@ -715,8 +717,9 @@ function SymbiotePack(containers) {
   }
   function onVisibility(){ active = !document.hidden; if (active && !raf) loop(); if (!active) { cancelAnimationFrame(raf); raf = 0; } }
   document.addEventListener('visibilitychange', onVisibility);
+  containers[0].__setActive = function (value) { active = value !== false && !document.hidden; if (active && !raf) loop(); if (!active) { cancelAnimationFrame(raf); raf = 0; } };
   loop();
-  return function dispose() { active = false; cancelAnimationFrame(raf); document.removeEventListener('visibilitychange', onVisibility); removeEventListener('resize', resize); d.forEach(f => f()); renderer.dispose(); if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement); };
+  return function dispose() { active = false; cancelAnimationFrame(raf); document.removeEventListener('visibilitychange', onVisibility); delete containers[0].__setActive; removeEventListener('resize', resize); d.forEach(f => f()); renderer.dispose(); if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement); };
 }
 
 const pes=[0,1,2,3,4,5,6,7].map(i=>document.getElementById('p'+i));
@@ -725,6 +728,7 @@ function getCreaturePositions(){ let n=0; for(const pupil of pes){ if(pupil.__po
 DeepOcean(document.getElementById('ocean'),{creature:getCreaturePositions});
 SymbiotePack(pes);
 window.addEventListener('message',e=>{
+  if(e.data?.type==='deep-ocean-active'){ document.getElementById('ocean').__setActive?.(e.data.active); document.getElementById('p0').__setActive?.(e.data.active); return; }
   if(e.data?.type!=='deep-ocean-pointer') return;
   const x=Number(e.data.clientX)||0, y=Number(e.data.clientY)||0;
   window.dispatchEvent(new PointerEvent('pointermove',{clientX:x,clientY:y,pointerType:'mouse'}));
