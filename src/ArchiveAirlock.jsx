@@ -33,7 +33,7 @@ function disposeScene(scene, renderer) {
     if (object.material) {
       const materials = Array.isArray(object.material) ? object.material : [object.material]
       materials.forEach((material) => {
-        Object.values(material).forEach((value) => value?.isTexture && value.dispose())
+        Object.values(material || {}).forEach((value) => value?.isTexture && value.dispose())
         material.dispose()
       })
     }
@@ -98,7 +98,12 @@ export default function ArchiveAirlock({ onProgress, onOpen, onUnavailable }) {
       const mesh = new THREE.Mesh(geometry, stencil(metal(i % 2 ? 0x1a2b82 : 0x22369a, .34, .72))); mesh.renderOrder = 2
       const lines = new THREE.LineSegments(new THREE.EdgesGeometry(geometry, 35), stencil(new THREE.LineBasicMaterial({ color: COL.med }))); lines.renderOrder = 3; lines.position.z = .001
       const blade = new THREE.Group(); blade.add(mesh, lines)
-      [[.72, .07, .075], [.5, .03, .075]].forEach(([distance, size, z]) => { const circle = new THREE.Mesh(new THREE.CircleGeometry(size * 1.5, 24), stencil(new THREE.MeshBasicMaterial({ color: COL.ink, toneMapped: false }))); circle.position.set(R * distance * Math.cos(rad(angle)) - pivot[0], R * distance * Math.sin(rad(angle)) - pivot[1], z + .02); circle.renderOrder = 3; blade.add(circle) })
+      const markers = [[.72, .07, .075], [.5, .03, .075]]
+      for (let markerIndex = 0; markerIndex < markers.length; markerIndex += 1) {
+        const [distance, markerSize, z] = markers[markerIndex]
+        const circle = new THREE.Mesh(new THREE.CircleGeometry(markerSize * 1.5, 24), stencil(new THREE.MeshBasicMaterial({ color: COL.ink, toneMapped: false })))
+        circle.position.set(R * distance * Math.cos(rad(angle)) - pivot[0], R * distance * Math.sin(rad(angle)) - pivot[1], z + .02); circle.renderOrder = 3; blade.add(circle)
+      }
       const ring = new THREE.Mesh(new THREE.RingGeometry(.15, .17, 32), stencil(new THREE.MeshBasicMaterial({ color: COL.med, toneMapped: false }))); ring.renderOrder = 3; ring.position.set(R * .86 * Math.cos(rad(angle)) - pivot[0], R * .86 * Math.sin(rad(angle)) - pivot[1], .095); blade.add(ring)
       blade.position.set(pivot[0], pivot[1], .06 + i * .008); root.add(blade); blades.push(blade)
     }
@@ -124,7 +129,7 @@ export default function ArchiveAirlock({ onProgress, onOpen, onUnavailable }) {
       for (let i = 0; i < NT; i += 1) { const amount = segment(value, 300 + i * 55, 350, E.out); tmpC.copy(tmpA).lerp(tmpB, amount); ticks[i].material.color.copy(tmpC); ticks[i].material.emissive.copy(tmpB).multiplyScalar(amount * .9) }
       ring.rotation.z = -rad(150) * segment(value, 1000, 4200, E.io)
       for (let i = 0; i < NL; i += 1) lugs[i].position.y = .46 * segment(value, 3400 + Math.floor(i / 2) * 110, 1100, E.over)
-      const emblemAmount = segment(value, 4200, 2200, E.io); emblem.visible = emblemAmount < 1; emblem.rotation.z = rad(120) * emblemAmount; emblem.scale.setScalar(1 + .6 * emblemAmount); emblemMaterials.forEach((material) => { material.opacity = 1 - emblemAmount })
+      const emblemAmount = segment(value, 4200, 2200, E.io); emblem.visible = emblemAmount < 1; emblem.rotation.z = rad(120) * emblemAmount; emblem.scale.setScalar(1 + .6 * emblemAmount); for (let i = 0; i < emblemMaterials.length; i += 1) emblemMaterials[i].opacity = 1 - emblemAmount
       for (let i = 0; i < NB; i += 1) { const amount = segment(value, 5000 + i * 110, 6800, E.soft); const nudge = Math.sin(Math.min(1, (value - 5000 - i * 110) / 500) * Math.PI) * (value > 5000 + i * 110 && value < 5600 + i * 110 ? 1 : 0); blades[i].rotation.z = rad(58) * amount - rad(1.6) * nudge * (1 - amount) }
       const glowAmount = segment(value, 4600, 7200, (x) => clamp(x)); light.intensity = 7 * segment(value, 4600, 7200, E.soft); lip.material.opacity = .5 + glowAmount * .22; camera.position.set(smoothX * HOVER_TILT.y, -smoothY * HOVER_TILT.x, z0 * (1 - .2 * glowAmount)); camera.lookAt(0, 0, 0); dust.rotation.y = now * .00004; dust.position.y = Math.sin(now * .0003) * .1
     }
