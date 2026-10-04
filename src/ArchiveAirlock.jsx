@@ -37,6 +37,7 @@ function disposeScene(scene, renderer) {
       })
     }
   })
+  scene.environment?.dispose?.()
   renderer.dispose()
   renderer.forceContextLoss?.()
 }
@@ -63,6 +64,10 @@ export default function ArchiveAirlock({ onProgress, onOpen, onUnavailable }) {
     renderer.toneMapping = THREE.ACESFilmicToneMapping
     renderer.toneMappingExposure = 1.15
     const scene = new THREE.Scene()
+    const environmentCanvas = document.createElement('canvas'); environmentCanvas.width = 128; environmentCanvas.height = 128
+    const environmentContext = environmentCanvas.getContext('2d'); const environmentGradient = environmentContext.createLinearGradient(0, 0, 0, 128)
+    environmentGradient.addColorStop(0, '#8fa0ff'); environmentGradient.addColorStop(.35, '#2A3B80'); environmentGradient.addColorStop(.7, '#121F50'); environmentGradient.addColorStop(1, '#040B27'); environmentContext.fillStyle = environmentGradient; environmentContext.fillRect(0, 0, 128, 128); environmentContext.fillStyle = '#EAF0FF'; environmentContext.fillRect(20, 18, 88, 8); environmentContext.fillRect(8, 60, 6, 40); environmentContext.fillRect(114, 60, 6, 40)
+    const environment = new THREE.CubeTexture([environmentCanvas, environmentCanvas, environmentCanvas, environmentCanvas, environmentCanvas, environmentCanvas]); environment.needsUpdate = true; scene.environment = environment
     const camera = new THREE.PerspectiveCamera(40, 1, .1, 60)
     const root = new THREE.Group()
     scene.add(root)
