@@ -333,7 +333,23 @@ function ProjectModal({ project, onClose }) {
   if (!project) return null
   const image = safeImageUrl(project.image)
   const link = safeExternalUrl(project.link)
-  return <div className="modal-backdrop" onClick={onClose}><article className="project-modal project-detail" onClick={(event) => event.stopPropagation()}><button className="close" onClick={onClose}>CLOSE ×</button><p className="label">PROJECT {project.id} / {project.status.toUpperCase()}</p><h2>{project.title}</h2><p className="detail-description">{project.description}</p>{image && <img className="project-detail-image" src={image} alt={`${project.title} preview`} />}<div className="detail-grid">{project.media.map((item, index) => <MediaPlaceholder key={item} label={item} tone={project.tone} index={index} />)}</div><div className="detail-meta"><div><span className="label">TOOLS</span><p>{project.tools.join(' / ') || 'Not logged yet'}</p></div><div><span className="label">LINK</span>{link ? <p><a className="project-live-link" href={link} target="_blank" rel="noopener noreferrer">OPEN PROJECT ↗</a></p> : <p>Link will attach here.</p>}</div></div></article></div>
+  const tone = project.tone === 'slate' ? '#9ba8ab' : project.tone === 'chrome' ? '#d9e1ff' : '#6677f0'
+  return <div className="modal-backdrop project-detail-backdrop" onClick={onClose}>
+    <article className="project-modal detail-panel" style={{ '--detail-tone': tone }} role="dialog" aria-modal="true" aria-labelledby="project-detail-title" onClick={(event) => event.stopPropagation()}>
+      <div className="detail-top">
+        <svg width="30" height="30" viewBox="0 0 30 30" fill="none" stroke="currentColor" aria-hidden="true"><circle cx="15" cy="15" r="9" opacity=".7" /><circle cx="15" cy="15" r="1.6" fill="currentColor" /><path d="M15 1v6M15 23v6M1 15h6M23 15h6" opacity=".5" /></svg>
+        <span className="detail-crumb">PROJECT {project.id}<span className="detail-badge">{project.status.replaceAll('-', ' ')}</span></span>
+        <button type="button" className="detail-close" onClick={onClose}>CLOSE ×</button>
+      </div>
+      <div className="detail-body">
+        <h2 id="project-detail-title">{project.title}</h2>
+        <p className="detail-description">{project.description}</p>
+        {image && <button type="button" className="detail-hero" onClick={() => window.open(image, '_blank', 'noopener,noreferrer')} aria-label={`Open ${project.title} preview`}><img src={image} alt={`${project.title} preview`} /><span>FULL SCREEN</span></button>}
+        <div className="detail-thumbs">{project.media.map((item, index) => <div className={`detail-tile media-${project.tone}`} key={`${item}-${index}`}><span className="media-orbit" /><span className="media-label">{item}</span><span className="media-time">00:{String(index + 7).padStart(2, '0')}</span></div>)}</div>
+        <div className="detail-facts"><div><h3>TOOLS</h3><div className="detail-chips">{project.tools.length ? project.tools.map((tool) => <span key={tool}>{tool}</span>) : <span>Not logged yet</span>}</div></div><div><h3>LINK</h3>{link ? <a className="detail-go" href={link} target="_blank" rel="noopener noreferrer">OPEN PROJECT ↗</a> : <p className="detail-muted">Link will attach here.</p>}</div></div>
+      </div>
+    </article>
+  </div>
 }
 
 function ProjectComposer({ onClose, onSave, deadOnly = false }) {
