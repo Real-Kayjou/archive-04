@@ -337,11 +337,14 @@ function ProjectModal({ project, onClose }) {
 }
 
 function ProjectComposer({ onClose, onSave, deadOnly = false }) {
-  const [form, setForm] = useState({ title: '', type: deadOnly ? 'FAILED / EXPERIMENT' : 'PROJECT / NEW', note: '', description: '', tools: '', link: '', image: '', tone: 'iris', status: deadOnly ? 'failed-experiment' : 'in-progress' })
+  const [form, setForm] = useState({ title: '', type: deadOnly ? 'FAILED / EXPERIMENT' : 'PROJECT', note: '', description: '', tools: [], link: '', image: '', tone: 'iris', status: deadOnly ? 'failed-experiment' : 'in-progress' })
+  const [toolInput, setToolInput] = useState('')
   const update = (key) => (event) => setForm((current) => ({ ...current, [key]: event.target.value }))
+  const addTools = (raw) => setForm((current) => ({ ...current, tools: [...current.tools, ...raw.split(',').map((tool) => tool.trim()).filter((tool) => tool && !current.tools.includes(tool))].slice(0, 12) }))
+  const onToolKey = (event) => { if (event.key === 'Enter' || event.key === ',') { event.preventDefault(); addTools(toolInput); setToolInput('') } else if (event.key === 'Backspace' && !toolInput) setForm((current) => ({ ...current, tools: current.tools.slice(0, -1) })) }
   const [error, setError] = useState('')
   const readImage = (event) => {
-    const file = event.target.files?.[0]
+    const file = event.target.files?.[0] || event.dataTransfer?.files?.[0]
     if (!file) return
     if (!file.type.startsWith('image/') || file.size > MAX_IMAGE_BYTES) {
       setError('Use an image file smaller than 5 MB.')
@@ -356,36 +359,32 @@ function ProjectComposer({ onClose, onSave, deadOnly = false }) {
   const submit = (event) => {
     event.preventDefault()
     if (!form.title.trim() || form.title.trim().length > 120) { setError('Enter a title up to 120 characters.'); return }
-    if (form.note.length > 240 || form.description.length > 2000 || form.tools.length > 500) { setError('Short note, description, or tools are too long.'); return }
+    if (form.note.length > 90 || form.description.length > 600 || form.tools.join(', ').length > 500) { setError('Short note, description, or tools are too long.'); return }
     if (form.link && !safeExternalUrl(form.link)) { setError('Use a valid http or https project link.'); return }
     onSave({
       ...form,
       id: `0${Date.now().toString().slice(-2)}`,
       note: form.note || 'A new signal has entered the archive.',
       description: form.description || 'A newly added project in the Kayjou archive.',
-      tools: form.tools.split(',').map((tool) => tool.trim()).filter(Boolean),
+      tools: form.tools,
       media: ['PROJECT / IMAGE', 'PROCESS / NOTES'],
        status: deadOnly ? form.status : 'in-progress',
     })
   }
-  return <div className="modal-backdrop composer-backdrop" onClick={onClose}><form className="project-modal project-composer" onSubmit={submit} onClick={(event) => event.stopPropagation()}>
+  const stateLabel = deadOnly ? form.status.replaceAll('-', ' ') : form.status === 'completed' ? 'Shipped' : 'In progress'
+  return <div className="modal-backdrop composer-backdrop" onClick={onClose}><form className="project-modal project-composer attach-composer" onSubmit={submit} onClick={(event) => event.stopPropagation()}>
     <button type="button" className="close" onClick={onClose}>CLOSE ×</button>
-    <p className="label">{deadOnly ? 'LABORATORY CMS / NEW REMAINS' : 'ARCHIVE CMS / NEW EXHIBIT'}</p><h2>{deadOnly ? 'Log a dead signal.' : 'Attach a project.'}</h2>
-    <div className="composer-grid">
-      <label>TITLE<input value={form.title} onChange={update('title')} placeholder="Project name" required /></label>
-      <label>TYPE<input value={form.type} onChange={update('type')} placeholder="3D / CODE / EXPERIMENT" /></label>
-      <label className="composer-wide">SHORT NOTE<input value={form.note} onChange={update('note')} placeholder="What is this project about?" /></label>
-      <label className="composer-wide">DESCRIPTION<textarea value={form.description} onChange={update('description')} placeholder="A few lines for the project detail view." rows="3" /></label>
-      <label>TOOLS<input value={form.tools} onChange={update('tools')} placeholder="React, Blender, SketchUp" /></label>
-      <label>LINK<input value={form.link} onChange={update('link')} placeholder="https://github.com/..." type="url" /></label>
-      <label className="composer-wide">IMAGE URL<input value={form.image.startsWith('data:') ? '' : form.image} onChange={update('image')} placeholder="https://.../project.jpg" type="url" /></label>
-      <label className="composer-wide file-drop">OR UPLOAD IMAGE<input onChange={readImage} type="file" accept="image/*" /></label>
-       <label>VISUAL TONE<select value={form.tone} onChange={update('tone')}><option value="iris">IRIS</option><option value="slate">SLATE</option><option value="chrome">CHROME</option></select></label>
-       {deadOnly ? <label>FAILURE STATE<select value={form.status} onChange={update('status')}><option value="failed-experiment">FAILED EXPERIMENT</option><option value="unfinished">UNFINISHED</option><option value="abandoned">ABANDONED</option></select></label> : <label>PROJECT STATE<select value={form.status} onChange={update('status')}><option value="in-progress">IN PROGRESS</option><option value="completed">FINISHED</option></select></label>}
-    </div>
-    {error && <p className="admin-message" role="alert">{error}</p>}
-    {form.image && <div className="composer-preview" style={{ backgroundImage: `url(${form.image})` }} />}
-    <button className="door-unlock composer-submit" type="submit"><span>{deadOnly ? 'PLACE IN GRAVEYARD' : 'PLACE IN ARCHIVE'}</span><b>↗</b></button>
+    <p className="attach-crumb">Archive CMS / <b>{deadOnly ? 'New remain' : 'New exhibit'}</b></p><h2>Attach a project</h2><p className="attach-lede">Fill in the details and watch the exhibit take shape.</p>
+    <div className="attach-grid"><div className="attach-fields">
+      <div className="attach-row"><label><span>Title <small>{form.title.length}/60</small></span><input value={form.title} maxLength="60" onChange={update('title')} placeholder="Project name" required /></label><label><span>Type</span><input value={form.type} onChange={update('type')} placeholder="Project / Study / 3D" /></label></div>
+      <label><span>Short note <small>{form.note.length}/90</small></span><input value={form.note} maxLength="90" onChange={update('note')} placeholder="One line: what is this about?" required /></label>
+      <label><span>Description <small>{form.description.length}/600</small></span><textarea value={form.description} maxLength="600" onChange={update('description')} placeholder="A few lines for the project detail view." rows="4" /></label>
+      <div className="attach-row"><label><span>Tools <small>Enter or comma to add</small></span><div className="tool-chips">{form.tools.map((tool, index) => <span key={`${tool}-${index}`}>{tool}<button type="button" onClick={() => setForm((current) => ({ ...current, tools: current.tools.filter((_, itemIndex) => itemIndex !== index) }))}>×</button></span>)}<input value={toolInput} onChange={(event) => setToolInput(event.target.value)} onKeyDown={onToolKey} onBlur={() => { if (toolInput.trim()) { addTools(toolInput); setToolInput('') } }} placeholder="React, Blender" aria-label="Add a tool" /></div></label><label><span>Link</span><input value={form.link} onChange={update('link')} placeholder="https://github.com/…" type="url" /></label></div>
+      <label><span>Cover image</span><div className="attach-drop" onClick={() => document.getElementById('project-cover-input')?.click()} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); readImage(event) }}><b>Drop an image here</b> or click to browse<small>JPG, PNG or WebP, up to 5 MB</small><input id="project-cover-input" onChange={readImage} type="file" accept="image/*" /></div><span className="attach-or">or paste an address</span><input value={form.image.startsWith('data:') ? '' : form.image} onChange={update('image')} placeholder="https://…/project.jpg" type="url" /></label>
+      <div><span className="attach-label">Visual tone</span><div className="tone-pills">{[['iris','Iris'],['slate','Slate'],['chrome','Chrome']].map(([value, label]) => <button type="button" className={form.tone === value ? 'active' : ''} onClick={() => setForm((current) => ({ ...current, tone: value }))} key={value}>{label}</button>)}</div></div>
+      <div><span className="attach-label">Project state</span><div className="state-pills">{(deadOnly ? [['failed-experiment','Failed'],['unfinished','Unfinished'],['abandoned','Abandoned']] : [['in-progress','Idea'],['in-progress','In progress'],['completed','Shipped']]).map(([value, label], index) => <button type="button" className={stateLabel === label.toLowerCase() || (!deadOnly && ((label === 'Idea' && form.status === 'in-progress' && index === 0))) ? 'active' : ''} onClick={() => setForm((current) => ({ ...current, status: value }))} key={`${value}-${label}`}>{label}</button>)}</div></div>
+      {error && <p className="admin-message" role="alert">{error}</p>}<div className="attach-actions"><button className="door-unlock composer-submit" type="submit"><span>{deadOnly ? 'PLACE IN GRAVEYARD' : 'PLACE IN ARCHIVE'}</span><b>↗</b></button><button type="button" className="attach-clear" onClick={() => setForm({ title: '', type: deadOnly ? 'FAILED / EXPERIMENT' : 'PROJECT', note: '', description: '', tools: [], link: '', image: '', tone: 'iris', status: deadOnly ? 'failed-experiment' : 'in-progress' })}>CLEAR FORM</button></div>
+    </div><aside className="attach-preview"><p>Live preview</p><article className={`attach-card project-${form.tone}`}><div className="attach-card-image" style={form.image ? { backgroundImage: `url(${form.image})` } : undefined}>{!form.image && 'NO COVER IMAGE YET'}</div><small>{form.type} / {stateLabel}</small><h3>{form.title || 'Untitled project'}</h3><p>{form.note || 'Your short note appears here.'}</p><div>{form.tools.map((tool) => <span key={tool}>{tool}</span>)}</div>{form.link && <a href={safeExternalUrl(form.link) || '#'} target="_blank" rel="noopener noreferrer">OPEN LINK ↗</a>}</article></aside></div>
   </form></div>
 }
 
