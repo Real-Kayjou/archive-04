@@ -409,7 +409,7 @@ function AdminAuth({ session, isAdmin, onClose, onSignOut, onSession }) {
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
   const submit = async (event) => {
-    event.preventDefault(); if (!supabase) return
+    event.preventDefault(); if (!supabase) { setMessage('Admin service is not configured for this deployment.'); return }
     setBusy(true); setMessage('')
     const result = mode === 'sign-in' ? await supabase.auth.signInWithPassword({ email, password }) : await supabase.auth.signUp({ email, password })
     setBusy(false)
