@@ -139,7 +139,9 @@ ui();
 function boot(incoming){
   if(renderer)return;
   if(Array.isArray(incoming)){PROJECTS=incoming;N=PROJECTS.length;}
-  if(window.THREE&&PROJECTS.length){init();loop();}
+  // Render the galaxy even when there are currently no unfinished projects.
+  // Project markers are optional data; the background scene itself should never disappear.
+  if(window.THREE){init();loop();}
 }
 window.addEventListener('message',function(e){
  if(e.origin!==location.origin||e.source!==window.parent)return;
