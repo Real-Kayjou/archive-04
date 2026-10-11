@@ -23,6 +23,15 @@ h1{margin:0;font-size:clamp(1.1rem,3.4vw,2rem);letter-spacing:.2em;font-weight:7
 .chips{pointer-events:auto;display:flex;gap:.45rem;max-width:100%;overflow-x:auto;padding:.2rem}
 .chip{font:inherit;font-size:.72rem;white-space:nowrap;color:var(--fg);padding:.38rem .8rem;border-radius:99px;border:1px solid var(--line);background:linear-gradient(rgba(66,85,178,.45),rgba(18,31,80,.5));cursor:pointer}
 .chip.on,.chip:hover{box-shadow:0 0 16px rgba(98,116,224,.85);border-color:#8fa0ff;background:var(--iris)}
+@media(max-width:600px){
+ .top{top:calc(.8rem + env(safe-area-inset-top,0px));left:.9rem;right:.9rem}
+ h1{font-size:clamp(1.05rem,6vw,1.35rem);letter-spacing:.12em}
+ .sub{font-size:.62rem;line-height:1.4;max-width:23rem}
+ .bot{left:.6rem;right:.6rem;bottom:calc(.7rem + env(safe-area-inset-bottom,0px));gap:.4rem}
+ .chips{width:100%;justify-content:flex-start;padding:.2rem .1rem;scrollbar-width:none}
+ .chip{font-size:.64rem;padding:.35rem .65rem}
+ .panel{width:min(540px,calc(100% - .4rem));font-size:.78rem}
+}
 </style>
 </head>
 <body>

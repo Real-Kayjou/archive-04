@@ -7,7 +7,7 @@
 #lab{min-height:760px;height:min(100vh,992px)}
 #lab .panel{position:absolute}
 .deck-band::before{animation:band 9s linear infinite}
-@media(max-width:760px){#lab{min-height:680px;height:auto;aspect-ratio:auto}.frame>.panel{left:5cqw;top:14cqw;width:90cqw;height:125cqw;max-height:75vh}}
+@media(max-width:760px){#lab{min-height:680px;height:auto;aspect-ratio:auto}.frame>.panel{left:5cqw;top:14cqw;width:90cqw;height:74cqw;max-height:none}}
 /* living type */
 .disp{font-family:var(--disp),sans-serif;font-weight:var(--dw);line-height:1.04;letter-spacing:-.01em;margin:0}
 .ln{display:block}
