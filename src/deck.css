@@ -193,6 +193,7 @@
 .hold:focus-visible,.gb:focus-visible,.mb:focus-visible,.rt:focus-visible,.it:focus-visible{outline:1px solid var(--ink);outline-offset:.3cqw}
 
 /* radial menu */
+.rad{display:none!important}
 .rad{left:60cqw;top:43.6cqw;width:4cqw;height:4cqw;--dl:5.4s}
 .rt{position:absolute;inset:0;border-radius:50%;border:1px solid rgba(190,200,255,.7);background:radial-gradient(circle,rgba(98,116,224,.6),rgba(18,31,80,.45));cursor:pointer;color:var(--ink);display:grid;place-items:center;padding:0;box-shadow:0 0 1.4cqw rgba(98,116,224,.5)}
 .rt::before{content:"";position:absolute;inset:-.4cqw;border-radius:50%;border:1px solid var(--med);animation:pulse 2.4s ease-out infinite}

@@ -403,7 +403,6 @@ function DeleteChooser({ archiveProjects, deadProjects, onClose, onDelete }) {
 }
 
 function AdminAuth({ session, isAdmin, onClose, onSignOut, onSession }) {
-  const [mode, setMode] = useState('sign-in')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
@@ -411,14 +410,14 @@ function AdminAuth({ session, isAdmin, onClose, onSignOut, onSession }) {
   const submit = async (event) => {
     event.preventDefault(); if (!supabase) { setMessage('Admin service is not configured for this deployment.'); return }
     setBusy(true); setMessage('')
-    const result = mode === 'sign-in' ? await supabase.auth.signInWithPassword({ email, password }) : await supabase.auth.signUp({ email, password })
+    const result = await supabase.auth.signInWithPassword({ email, password })
     setBusy(false)
     if (result.error) { setMessage(result.error.message); return }
     if (result.data.session) { onSession(result.data.session); onClose() }
-    else setMessage('Account created. Confirm your email, then sign in.')
+    else setMessage('Check your email to continue.')
   }
   if (session) return <div className="modal-backdrop admin-backdrop" onClick={onClose}><section className="project-modal admin-modal" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}><button type="button" className="close" onClick={onClose}>CLOSE ×</button><p className="label">ARCHIVE CONTROL / IDENTITY</p><h2>{isAdmin ? 'Admin access granted.' : 'Account not authorized.'}</h2><p className="admin-message">{isAdmin ? 'You can now add and remove archive signals.' : 'This account is signed in but is not listed as an administrator.'}</p><button type="button" className="door-unlock composer-submit" onClick={onSignOut}><span>SIGN OUT</span><b>↗</b></button></section></div>
-  return <div className="modal-backdrop admin-backdrop" onClick={onClose}><form className="project-modal admin-modal" role="dialog" aria-modal="true" onSubmit={submit} onClick={(event) => event.stopPropagation()}><button type="button" className="close" onClick={onClose}>CLOSE ×</button><p className="label">ARCHIVE CONTROL / PRIVATE ACCESS</p><h2>{mode === 'sign-in' ? 'Admin sign in.' : 'Create admin account.'}</h2><label className="admin-field">EMAIL<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" required /></label><label className="admin-field">PASSWORD<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete={mode === 'sign-in' ? 'current-password' : 'new-password'} minLength="8" required /></label>{message && <p className="admin-message">{message}</p>}<button className="door-unlock composer-submit" type="submit" disabled={busy}><span>{busy ? 'CHECKING' : mode === 'sign-in' ? 'ENTER CONTROL' : 'CREATE ACCOUNT'}</span><b>↗</b></button><button type="button" className="admin-switch" onClick={() => { setMode(mode === 'sign-in' ? 'sign-up' : 'sign-in'); setMessage('') }}>{mode === 'sign-in' ? 'Create the first admin account' : 'Already have an account? Sign in'}</button></form></div>
+  return <div className="modal-backdrop admin-backdrop" onClick={onClose}><form className="project-modal admin-modal" role="dialog" aria-modal="true" onSubmit={submit} onClick={(event) => event.stopPropagation()}><button type="button" className="close" onClick={onClose}>CLOSE ×</button><p className="label">ARCHIVE CONTROL / PRIVATE ACCESS</p><h2>Admin sign in.</h2><label className="admin-field">EMAIL<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" required /></label><label className="admin-field">PASSWORD<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" minLength="8" required /></label>{message && <p className="admin-message">{message}</p>}<button className="door-unlock composer-submit" type="submit" disabled={busy}><span>{busy ? 'CHECKING' : 'ENTER CONTROL'}</span><b>↗</b></button></form></div>
 }
 
 function HudTelemetry() {
