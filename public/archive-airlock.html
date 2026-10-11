@@ -165,7 +165,7 @@ canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
   }
   function finish(){
     cta.disabled=false; body.classList.remove('busy');
-    if(dir>0){n=TOTAL;state='open';txt.textContent='RESEAL ARCHIVE';body.classList.add('isopen');st.textContent='ARCHIVE AIRLOCK / OPEN';document.dispatchEvent(new CustomEvent('airlock:open')); parent.postMessage({type:'archive-airlock-open'},'*')}
+    if(dir>0){n=TOTAL;state='open';txt.textContent='RESEAL ARCHIVE';body.classList.add('isopen');st.textContent='ARCHIVE AIRLOCK / OPEN';document.dispatchEvent(new CustomEvent('airlock:open')); parent.postMessage({type:'archive-airlock-open'},location.origin)}
     else{n=0;state='sealed';txt.textContent='UNLOCK ARCHIVE';body.classList.remove('isopen');st.textContent='ARCHIVE AIRLOCK / SEALED';document.dispatchEvent(new CustomEvent('airlock:closed'))}
     dir=0;
   }

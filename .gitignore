@@ -3,3 +3,6 @@ dist/
 build/
 .npm-cache/
 .vite/
+.env
+.env.*
+!.env.example

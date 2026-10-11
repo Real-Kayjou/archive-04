@@ -106,11 +106,12 @@ renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true});renderer
 }
 function resize(){var w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
 var panel=document.getElementById('panel'),chips=document.getElementById('chips');
+function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 function ui(){chips.innerHTML='';
  PROJECTS.forEach(function(p,i){var b=document.createElement('button');b.className='chip'+(i===sel?' on':'');b.textContent=p.name;b.onclick=function(){pick(i===sel?-1:i)};chips.appendChild(b);});
  if(sel<0){panel.style.display='none';return;}
  var p=PROJECTS[sel];panel.style.display='block';
- panel.innerHTML='<b>'+p.name+' <small>· '+p.lang+' · '+p.years+'</small></b>✖ build failed · '+p.pct+'% complete<br>'+p.cause+'<br><button class="back" id="bk">← back to galaxy</button>';
+ panel.innerHTML='<b>'+esc(p.name)+' <small>· '+esc(p.lang)+' · '+esc(p.years)+'</small></b>✖ build failed · '+esc(p.pct)+'% complete<br>'+esc(p.cause)+'<br><button class="back" id="bk">← back to galaxy</button>';
  document.getElementById('bk').onclick=function(){pick(-1)};}
 function pick(i){sel=i;ui();}
 cv.addEventListener('pointerdown',function(e){drag=true;lx=e.clientX;ly=e.clientY;cv.style.cursor='grabbing';},{passive:true});
@@ -137,14 +138,15 @@ function loop(){
 ui();
 function boot(incoming){
   if(renderer)return;
-  if(incoming){PROJECTS=incoming;N=PROJECTS.length;}
+  if(Array.isArray(incoming)){PROJECTS=incoming;N=PROJECTS.length;}
   if(window.THREE&&PROJECTS.length){init();loop();}
 }
 window.addEventListener('message',function(e){
+ if(e.origin!==location.origin||e.source!==window.parent)return;
  if(!e.data)return;
  if(e.data.type==='lab-projects')boot(e.data.projects);
 });
-window.setTimeout(function(){if(!renderer&&window.parent!==window)window.parent.postMessage({type:'lab-ready'},'*');},200);
+window.setTimeout(function(){if(!renderer&&window.parent!==window)window.parent.postMessage({type:'lab-ready'},location.origin);},200);
 document.addEventListener('visibilitychange',function(){
  if(document.hidden){active=false;cancelAnimationFrame(raf);}
  else if(!active){active=true;loop();}

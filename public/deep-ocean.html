@@ -728,6 +728,7 @@ function getCreaturePositions(){ let n=0; for(const pupil of pes){ if(pupil.__po
 DeepOcean(document.getElementById('ocean'),{creature:getCreaturePositions});
 SymbiotePack(pes);
 window.addEventListener('message',e=>{
+  if(e.origin!==location.origin||e.source!==parent)return;
   if(e.data?.type==='deep-ocean-active'){ document.getElementById('ocean').__setActive?.(e.data.active); document.getElementById('p0').__setActive?.(e.data.active); return; }
   if(e.data?.type!=='deep-ocean-pointer') return;
   const x=Number(e.data.clientX)||0, y=Number(e.data.clientY)||0;

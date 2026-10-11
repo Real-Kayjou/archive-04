@@ -350,6 +350,7 @@ function SymbiotePupil(container) {
   window.addEventListener('pointermove', onMove);
   document.addEventListener('mouseleave', onLeave);
   window.addEventListener('message', e => {
+    if (e.origin !== location.origin || e.source !== parent) return;
     if (!e.data || e.data.type !== 'symbiote-pointer') return;
     if (!e.data.active) { mouse.on = false; return; }
     mouse.x = e.data.x; mouse.y = e.data.y; mouse.on = true; mouse.lastMove = performance.now() / 1000;

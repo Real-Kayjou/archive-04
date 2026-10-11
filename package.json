@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@react-three/fiber": "^9.8.1",
+    "@supabase/supabase-js": "^2.117.2",
     "@vitejs/plugin-react": "latest",
     "react": "latest",
     "react-dom": "latest",
