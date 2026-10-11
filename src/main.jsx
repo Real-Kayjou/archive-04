@@ -254,7 +254,7 @@ function DeckRuntime() {
     if (!window.__archiveDeckRuntime) {
       window.__archiveDeckRuntime = true
       const script = document.createElement('script')
-      script.src = '/deck.js?v=cursor-translate-living-type-1'
+      script.src = appAsset('deck.js?v=cursor-translate-living-type-1')
       script.async = true
       script.onerror = () => { window.__archiveDeckRuntime = false }
       document.body.append(script)
